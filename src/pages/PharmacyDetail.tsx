@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit, Trash2, ArrowLeft, Check } from "lucide-react";
+import { Edit, Trash2, ArrowLeft, Check, MapPin } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -19,32 +19,41 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { Pharmacy, TechnicalSupervisor } from "../types/pharmacy.types";
 
 const PharmacyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPharmacy, deletePharmacy } = usePharmacy();
-  
-  const pharmacy = getPharmacy(id || "");
+  const { getPharmacy, deletePharmacy, loading } = usePharmacy();
+  const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
 
-  if (!pharmacy) {
+  useEffect(() => {
+    const fetchPharmacy = async () => {
+      if (id) {
+        const data = await getPharmacy(id);
+        setPharmacy(data);
+      }
+    };
+    fetchPharmacy();
+  }, [id, getPharmacy]);
+
+  if (loading || !pharmacy) {
     return (
-      <div className="text-center p-10">
-        <h1 className="text-3xl font-bold mb-4">Farmácia não encontrada</h1>
-        <p className="text-muted-foreground mb-4">
-          A farmácia solicitada não existe ou foi removida.
-        </p>
-        <Link to="/farmacias">
-          <Button>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para a lista
-          </Button>
-        </Link>
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 gap-6">
+          <Skeleton className="h-40" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Skeleton className="h-40" />
+            <Skeleton className="h-40" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  const handleDelete = () => {
-    deletePharmacy(pharmacy.id);
+  const handleDelete = async () => {
+    await deletePharmacy(pharmacy.id);
     navigate("/farmacias");
   };
 
@@ -148,10 +157,39 @@ const PharmacyDetail: React.FC = () => {
               <Separator />
               
               <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center">
+                  <MapPin className="mr-2 h-5 w-5 text-muted-foreground" /> Endereço
+                </h3>
+                {pharmacy.address ? (
+                  <div className="pl-4 border-l-2 border-primary/30 space-y-2 text-sm">
+                    <p>
+                      {pharmacy.address.logradouro}
+                      {pharmacy.address.numero ? `, ${pharmacy.address.numero}` : ''}
+                      {pharmacy.address.complemento ? ` - ${pharmacy.address.complemento}` : ''}
+                    </p>
+                    <p>
+                      {pharmacy.address.bairro ? `${pharmacy.address.bairro}, ` : ''}
+                      {pharmacy.address.cidade || ''}
+                      {pharmacy.address.estado ? ` - ${pharmacy.address.estado.toUpperCase()}` : ''}
+                    </p>
+                    {pharmacy.address.cep && (
+                      <p>CEP: {pharmacy.address.cep}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground pl-4">
+                    Endereço não informado.
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+              
+              <div>
                 <h3 className="text-lg font-semibold mb-3">Responsáveis Técnicos</h3>
                 {pharmacy.responsaveisTecnicos && pharmacy.responsaveisTecnicos.length > 0 ? (
                   <div className="space-y-4">
-                    {pharmacy.responsaveisTecnicos.map((supervisor, index) => (
+                    {pharmacy.responsaveisTecnicos.map((supervisor: TechnicalSupervisor, index: number) => (
                       <div key={index} className="pl-4 border-l-2 border-primary/30">
                         <p className="font-medium">{supervisor.nome || "Nome não informado"}</p>
                         <p className="text-sm text-muted-foreground">
@@ -175,13 +213,17 @@ const PharmacyDetail: React.FC = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Data de Cadastro</p>
                     <p className="font-medium">
-                      {format(new Date(pharmacy.dataCadastro), "PPP", { locale: ptBR })}
+                      {pharmacy.dataCadastro 
+                        ? format(new Date(pharmacy.dataCadastro), "PPP", { locale: ptBR })
+                        : "Data não informada"}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Última Atualização</p>
                     <p className="font-medium">
-                      {format(new Date(pharmacy.ultimaAtualizacao), "PPP 'às' p", { locale: ptBR })}
+                      {pharmacy.ultimaAtualizacao
+                        ? format(new Date(pharmacy.ultimaAtualizacao), "PPP 'às' p", { locale: ptBR })
+                        : "Nunca atualizada"}
                     </p>
                   </div>
                 </div>
@@ -200,11 +242,11 @@ const PharmacyDetail: React.FC = () => {
                 {months.map((month) => (
                   <div key={month.key} className="flex items-center gap-2">
                     <div className={`h-4 w-4 rounded-sm border ${
-                      pharmacy.controlesMensais[month.key] 
+                      pharmacy.controlesMensais[month.key as keyof typeof pharmacy.controlesMensais] 
                         ? 'bg-primary border-primary' 
                         : 'border-gray-300'
                     }`}>
-                      {pharmacy.controlesMensais[month.key] && (
+                      {pharmacy.controlesMensais[month.key as keyof typeof pharmacy.controlesMensais] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
                     </div>
@@ -224,11 +266,11 @@ const PharmacyDetail: React.FC = () => {
                 {quarters.map((quarter) => (
                   <div key={quarter.key} className="flex items-center gap-2">
                     <div className={`h-4 w-4 rounded-sm border ${
-                      pharmacy.controlesTrimestrais[quarter.key] 
+                      pharmacy.controlesTrimestrais[quarter.key as keyof typeof pharmacy.controlesTrimestrais] 
                         ? 'bg-primary border-primary' 
                         : 'border-gray-300'
                     }`}>
-                      {pharmacy.controlesTrimestrais[quarter.key] && (
+                      {pharmacy.controlesTrimestrais[quarter.key as keyof typeof pharmacy.controlesTrimestrais] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
                     </div>

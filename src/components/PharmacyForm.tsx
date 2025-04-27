@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
-import { Pharmacy } from "../types/pharmacy.types";
+import { Pharmacy, TechnicalSupervisor, MonthlyControl, QuarterlyControl, Address } from "../types/pharmacy.types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
+
+const emptyAddress: Address = {
+  logradouro: "",
+  numero: "",
+  bairro: "",
+  cidade: "",
+  estado: "",
+  cep: "",
+  complemento: "",
+};
 
 const emptyPharmacy = {
   cnpj: "",
@@ -38,6 +48,7 @@ const emptyPharmacy = {
     quarto: "",
   },
   observacoes: "",
+  address: { ...emptyAddress },
 };
 
 interface PharmacyFormProps {
@@ -45,19 +56,99 @@ interface PharmacyFormProps {
   isEditing?: boolean;
 }
 
+// Função auxiliar para garantir que valores sejam strings vazias se forem null/undefined
+const ensureString = (value: string | null | undefined): string => value ?? "";
+
+// Função auxiliar para garantir que o array de supervisores não seja null/undefined
+const ensureSupervisors = (supervisors: TechnicalSupervisor[] | null | undefined): TechnicalSupervisor[] => 
+  supervisors && supervisors.length > 0 ? supervisors.map(s => ({ nome: ensureString(s.nome), crf: ensureString(s.crf) })) : [{ nome: "", crf: "" }];
+
+// Função auxiliar para garantir que os controles mensais não sejam null/undefined
+const ensureMonthlyControls = (controls: MonthlyControl | null | undefined): MonthlyControl => {
+  const defaultControls: MonthlyControl = {
+    janeiro: "", fevereiro: "", marco: "", abril: "", maio: "", junho: "",
+    julho: "", agosto: "", setembro: "", outubro: "", novembro: "", dezembro: ""
+  };
+  if (!controls) return defaultControls;
+  // Garante que cada mês tenha um valor string
+  Object.keys(defaultControls).forEach(key => {
+    const monthKey = key as keyof MonthlyControl;
+    (defaultControls[monthKey] as string) = ensureString(controls[monthKey]);
+  });
+  return defaultControls;
+};
+
+// Função auxiliar para garantir que os controles trimestrais não sejam null/undefined
+const ensureQuarterlyControls = (controls: QuarterlyControl | null | undefined): QuarterlyControl => {
+  const defaultControls: QuarterlyControl = {
+    primeiro: "", segundo: "", terceiro: "", quarto: ""
+  };
+  if (!controls) return defaultControls;
+  // Garante que cada trimestre tenha um valor string
+  Object.keys(defaultControls).forEach(key => {
+    const quarterKey = key as keyof QuarterlyControl;
+    (defaultControls[quarterKey] as string) = ensureString(controls[quarterKey]);
+  });
+  return defaultControls;
+};
+
+// Função auxiliar para garantir que o endereço e seus campos sejam strings
+const ensureAddress = (address: Address | null | undefined): Address => {
+  if (!address) return { ...emptyAddress };
+  return {
+    logradouro: ensureString(address.logradouro),
+    numero: ensureString(address.numero),
+    bairro: ensureString(address.bairro),
+    cidade: ensureString(address.cidade),
+    estado: ensureString(address.estado),
+    cep: ensureString(address.cep),
+    complemento: ensureString(address.complemento),
+  };
+};
+
 const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false }) => {
-  const [formData, setFormData] = useState<Omit<Pharmacy, "id" | "dataCadastro" | "ultimaAtualizacao">>(
-    pharmacy ? { ...pharmacy } : { ...emptyPharmacy }
-  );
+  // Ajustar tipo do estado para incluir Address
+  const [formData, setFormData] = useState<Omit<Pharmacy, "id" | "dataCadastro" | "ultimaAtualizacao"> & { address: Address }>(() => {
+    if (pharmacy) {
+      return {
+        cnpj: ensureString(pharmacy.cnpj),
+        razaoSocial: ensureString(pharmacy.razaoSocial),
+        nomeFantasia: ensureString(pharmacy.nomeFantasia),
+        telefone: ensureString(pharmacy.telefone),
+        email: ensureString(pharmacy.email),
+        observacoes: ensureString(pharmacy.observacoes),
+        responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
+        controlesMensais: ensureMonthlyControls(pharmacy.controlesMensais),
+        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais),
+        address: ensureAddress(pharmacy.address),
+      };
+    } else {
+      // Garantir que address seja inicializado corretamente
+      return { ...emptyPharmacy, address: { ...emptyAddress } }; 
+    }
+  });
 
   const { addPharmacy, updatePharmacy } = usePharmacy();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (pharmacy) {
-      setFormData({ ...pharmacy });
+      setFormData((prev) => ({
+        ...prev,
+        cnpj: ensureString(pharmacy.cnpj),
+        razaoSocial: ensureString(pharmacy.razaoSocial),
+        nomeFantasia: ensureString(pharmacy.nomeFantasia),
+        telefone: ensureString(pharmacy.telefone),
+        email: ensureString(pharmacy.email),
+        observacoes: ensureString(pharmacy.observacoes),
+        responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
+        controlesMensais: ensureMonthlyControls(pharmacy.controlesMensais),
+        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais),
+        address: ensureAddress(pharmacy.address),
+      }));
     } else {
-      setFormData({ ...emptyPharmacy });
+      // Resetar se pharmacy se tornar null/undefined (ex: na criação)
+      setFormData({ ...emptyPharmacy, address: { ...emptyAddress } });
     }
   }, [pharmacy]);
 
@@ -68,15 +159,29 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Nova função para lidar com mudanças nos campos de endereço
+  const handleAddressChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [name]: value,
+      },
+    }));
+  };
+
   const handleSupervisorChange = (
     index: number,
     field: "nome" | "crf",
     value: string
   ) => {
-    const newSupervisors = [...formData.responsaveisTecnicos];
+    const newSupervisors = [...(formData.responsaveisTecnicos || [])];
     newSupervisors[index] = {
-      ...newSupervisors[index],
-      [field]: value,
+      nome: field === "nome" ? value : (newSupervisors[index]?.nome || ""),
+      crf: field === "crf" ? value : (newSupervisors[index]?.crf || "")
     };
 
     setFormData((prev) => ({
@@ -86,10 +191,10 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
   };
 
   const handleAddSupervisor = () => {
-    if (formData.responsaveisTecnicos.length < 3) {
+    if ((formData.responsaveisTecnicos?.length || 0) < 3) {
       setFormData((prev) => ({
         ...prev,
-        responsaveisTecnicos: [...prev.responsaveisTecnicos, { nome: "", crf: "" }],
+        responsaveisTecnicos: [...(prev.responsaveisTecnicos || []), { nome: "", crf: "" }],
       }));
     }
   };
@@ -126,15 +231,18 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Preparar dados para enviar (incluindo address)
+    const dataToSend = { ...formData };
 
     if (isEditing && pharmacy) {
       updatePharmacy({
         ...pharmacy,
-        ...formData,
+        ...dataToSend,
       });
       navigate(`/farmacias/${pharmacy.id}`);
     } else {
-      addPharmacy(formData);
+      addPharmacy(dataToSend);
       navigate("/farmacias");
     }
   };
@@ -235,6 +343,99 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="email@exemplo.com"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Endereço (Opcional)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div className="space-y-2 md:col-span-4">
+              <label className="text-sm font-medium" htmlFor="logradouro">
+                Logradouro (Rua, Avenida, etc.)
+              </label>
+              <Input
+                id="logradouro"
+                name="logradouro"
+                value={formData.address.logradouro}
+                onChange={handleAddressChange}
+                placeholder="Ex: Rua Principal"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium" htmlFor="numero">
+                Número
+              </label>
+              <Input
+                id="numero"
+                name="numero"
+                value={formData.address.numero}
+                onChange={handleAddressChange}
+                placeholder="Ex: 123, S/N"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-3">
+              <label className="text-sm font-medium" htmlFor="bairro">
+                Bairro
+              </label>
+              <Input
+                id="bairro"
+                name="bairro"
+                value={formData.address.bairro}
+                onChange={handleAddressChange}
+                placeholder="Ex: Centro"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-3">
+              <label className="text-sm font-medium" htmlFor="complemento">
+                Complemento
+              </label>
+              <Input
+                id="complemento"
+                name="complemento"
+                value={formData.address.complemento}
+                onChange={handleAddressChange}
+                placeholder="Ex: Apto 101, Bloco B"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-3">
+              <label className="text-sm font-medium" htmlFor="cidade">
+                Cidade
+              </label>
+              <Input
+                id="cidade"
+                name="cidade"
+                value={formData.address.cidade}
+                onChange={handleAddressChange}
+                placeholder="Ex: São Paulo"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-1">
+              <label className="text-sm font-medium" htmlFor="estado">
+                Estado (UF)
+              </label>
+              <Input
+                id="estado"
+                name="estado"
+                maxLength={2}
+                value={formData.address.estado}
+                onChange={handleAddressChange}
+                placeholder="Ex: SP"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium" htmlFor="cep">
+                CEP
+              </label>
+              <Input
+                id="cep"
+                name="cep"
+                value={formData.address.cep}
+                onChange={handleAddressChange}
+                placeholder="Ex: 12345-678"
               />
             </div>
           </div>

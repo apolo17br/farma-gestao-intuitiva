@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { usePharmacy } from "../context/PharmacyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, AlertCircle, Calendar } from "lucide-react";
@@ -15,18 +14,19 @@ import {
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Dashboard: React.FC = () => {
-  const { pharmacies } = usePharmacy();
+  const { pharmacies, loading } = usePharmacy();
 
   // Dados para os indicadores
-  const totalPharmacies = pharmacies.length;
-  const pharmaciesWithoutTechnical = pharmacies.filter(
+  const totalPharmacies = pharmacies?.length || 0;
+  const pharmaciesWithoutTechnical = (pharmacies || []).filter(
     (pharmacy) =>
-      !pharmacy.responsaveisTecnicos ||
+      !pharmacy?.responsaveisTecnicos ||
       pharmacy.responsaveisTecnicos.length === 0 ||
       pharmacy.responsaveisTecnicos.some(
-        (supervisor) => !supervisor.nome || !supervisor.crf
+        (supervisor) => !supervisor?.nome || !supervisor?.crf
       )
   );
 
@@ -43,24 +43,44 @@ const Dashboard: React.FC = () => {
       quantidade: 0,
     }));
 
-    pharmacies.forEach((pharmacy) => {
-      const date = new Date(pharmacy.dataCadastro);
-      const month = date.getMonth();
-      monthData[month].quantidade += 1;
+    (pharmacies || []).forEach((pharmacy) => {
+      if (pharmacy?.dataCadastro) {
+        const date = new Date(pharmacy.dataCadastro);
+        const month = date.getMonth();
+        if (monthData[month]) {
+          monthData[month].quantidade += 1;
+        }
+      }
     });
 
     return monthData;
   };
 
   // Ordenar farmácias por data de atualização
-  const recentPharmacies = [...pharmacies]
+  const recentPharmacies = [...(pharmacies || [])]
     .sort((a, b) => {
-      return (
-        new Date(b.ultimaAtualizacao).getTime() -
-        new Date(a.ultimaAtualizacao).getTime()
-      );
+      const dateA = a?.ultimaAtualizacao ? new Date(a.ultimaAtualizacao).getTime() : 0;
+      const dateB = b?.ultimaAtualizacao ? new Date(b.ultimaAtualizacao).getTime() : 0;
+      return dateB - dateA;
     })
     .slice(0, 5);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
