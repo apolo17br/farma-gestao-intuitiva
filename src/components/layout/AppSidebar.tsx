@@ -1,5 +1,4 @@
-
-import { Home, Users, AlertCircle, Calendar, Menu, X } from "lucide-react";
+import { Home, Users, AlertCircle, Calendar, Menu, X, ChevronLeft } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -58,26 +57,30 @@ export const AppSidebar = () => {
         </div>
       </div>
       
-      {/* Sidebar - uses the shadcn/ui Sidebar component */}
+      {/* Sidebar */}
       <Sidebar className="border-r border-gray-200 mt-16 md:mt-0">
         <SidebarHeader className="p-4 border-b border-gray-200">
-          <div className="flex items-center">
+          <div className="flex items-center justify-between">
             <div className="flex-1">
               <h2 className="text-xl font-bold text-primary">Farma-Gestão</h2>
               <p className="text-xs text-muted-foreground">Vigilância Sanitária</p>
             </div>
-            <SidebarTrigger className="md:flex hidden" />
-            {isMobile && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setOpenMobile(false)}
-                className="md:hidden"
-                aria-label="Fechar menu"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="flex hover:bg-accent hover:text-accent-foreground p-2 rounded-md">
+                <ChevronLeft className={`h-5 w-5 transition-transform duration-200 ${!isExpanded ? 'rotate-180' : ''}`} />
+              </SidebarTrigger>
+              {isMobile && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setOpenMobile(false)}
+                  className="md:hidden"
+                  aria-label="Fechar menu"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
           </div>
         </SidebarHeader>
         <SidebarContent>

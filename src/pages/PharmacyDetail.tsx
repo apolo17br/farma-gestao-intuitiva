@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
@@ -8,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Check } from "@/components/ui/check";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -198,11 +198,17 @@ const PharmacyDetail: React.FC = () => {
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {months.map((month) => (
-                  <div key={month.key}>
-                    <p className="text-sm text-muted-foreground">{month.label}</p>
-                    <p className="font-medium">
-                      {pharmacy.controlesMensais[month.key] || "-"}
-                    </p>
+                  <div key={month.key} className="flex items-center gap-2">
+                    <div className={`h-4 w-4 rounded-sm border ${
+                      pharmacy.controlesMensais[month.key] 
+                        ? 'bg-primary border-primary' 
+                        : 'border-gray-300'
+                    }`}>
+                      {pharmacy.controlesMensais[month.key] && (
+                        <Check className="h-4 w-4 text-primary-foreground" />
+                      )}
+                    </div>
+                    <span className="text-sm">{month.label}</span>
                   </div>
                 ))}
               </div>
@@ -216,11 +222,17 @@ const PharmacyDetail: React.FC = () => {
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 {quarters.map((quarter) => (
-                  <div key={quarter.key}>
-                    <p className="text-sm text-muted-foreground">{quarter.label}</p>
-                    <p className="font-medium">
-                      {pharmacy.controlesTrimestrais[quarter.key] || "-"}
-                    </p>
+                  <div key={quarter.key} className="flex items-center gap-2">
+                    <div className={`h-4 w-4 rounded-sm border ${
+                      pharmacy.controlesTrimestrais[quarter.key] 
+                        ? 'bg-primary border-primary' 
+                        : 'border-gray-300'
+                    }`}>
+                      {pharmacy.controlesTrimestrais[quarter.key] && (
+                        <Check className="h-4 w-4 text-primary-foreground" />
+                      )}
+                    </div>
+                    <span className="text-sm">{quarter.label}</span>
                   </div>
                 ))}
               </div>

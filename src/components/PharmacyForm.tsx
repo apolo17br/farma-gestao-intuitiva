@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
@@ -8,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
 
 const emptyPharmacy = {
@@ -53,7 +53,6 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
   const { addPharmacy, updatePharmacy } = usePharmacy();
   const navigate = useNavigate();
 
-  // Reset form when pharmacy prop changes
   useEffect(() => {
     if (pharmacy) {
       setFormData({ ...pharmacy });
@@ -105,22 +104,22 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     }));
   };
 
-  const handleMonthlyControlChange = (month: string, value: string) => {
+  const handleMonthlyControlChange = (month: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       controlesMensais: {
         ...prev.controlesMensais,
-        [month]: value,
+        [month]: checked ? "realizado" : "",
       },
     }));
   };
 
-  const handleQuarterlyControlChange = (quarter: string, value: string) => {
+  const handleQuarterlyControlChange = (quarter: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       controlesTrimestrais: {
         ...prev.controlesTrimestrais,
-        [quarter]: value,
+        [quarter]: checked ? "realizado" : "",
       },
     }));
   };
@@ -320,15 +319,20 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {months.map((month) => (
-              <div key={month.key} className="space-y-2">
-                <label className="text-sm font-medium">{month.label}</label>
-                <Input
-                  value={formData.controlesMensais[month.key] || ""}
-                  onChange={(e) =>
-                    handleMonthlyControlChange(month.key, e.target.value)
+              <div key={month.key} className="flex items-start space-x-2">
+                <Checkbox
+                  id={`monthly-${month.key}`}
+                  checked={!!formData.controlesMensais[month.key]}
+                  onCheckedChange={(checked) => 
+                    handleMonthlyControlChange(month.key, checked as boolean)
                   }
-                  placeholder="Nº"
                 />
+                <label
+                  htmlFor={`monthly-${month.key}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {month.label}
+                </label>
               </div>
             ))}
           </div>
@@ -340,15 +344,20 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           <h3 className="text-lg font-semibold mb-4">Controle Trimestral</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {quarters.map((quarter) => (
-              <div key={quarter.key} className="space-y-2">
-                <label className="text-sm font-medium">{quarter.label}</label>
-                <Input
-                  value={formData.controlesTrimestrais[quarter.key]}
-                  onChange={(e) =>
-                    handleQuarterlyControlChange(quarter.key, e.target.value)
+              <div key={quarter.key} className="flex items-start space-x-2">
+                <Checkbox
+                  id={`quarterly-${quarter.key}`}
+                  checked={!!formData.controlesTrimestrais[quarter.key]}
+                  onCheckedChange={(checked) => 
+                    handleQuarterlyControlChange(quarter.key, checked as boolean)
                   }
-                  placeholder="Nº"
                 />
+                <label
+                  htmlFor={`quarterly-${quarter.key}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {quarter.label}
+                </label>
               </div>
             ))}
           </div>
