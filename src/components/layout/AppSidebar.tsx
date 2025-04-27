@@ -1,3 +1,4 @@
+
 import { Home, Users, AlertCircle, Calendar, Menu, X, ChevronLeft } from "lucide-react";
 import {
   Sidebar,
@@ -57,6 +58,24 @@ export const AppSidebar = () => {
         </div>
       </div>
       
+      {/* Toggle button for desktop - always visible */}
+      <div className="hidden md:block fixed top-4 left-4 z-30">
+        <SidebarTrigger 
+          className={cn(
+            "bg-white shadow-md rounded-lg p-2 transition-all duration-300 ease-in-out hover:bg-accent",
+            isExpanded ? "ml-[14rem]" : "ml-0"
+          )}
+          aria-label={isExpanded ? "Recolher menu" : "Expandir menu"}
+        >
+          <ChevronLeft 
+            className={cn(
+              "h-5 w-5 transition-transform duration-300",
+              !isExpanded && "rotate-180"
+            )} 
+          />
+        </SidebarTrigger>
+      </div>
+      
       {/* Sidebar */}
       <Sidebar className="border-r border-gray-200 mt-16 md:mt-0">
         <SidebarHeader className="p-4 border-b border-gray-200">
@@ -65,22 +84,17 @@ export const AppSidebar = () => {
               <h2 className="text-xl font-bold text-primary">Farma-Gestão</h2>
               <p className="text-xs text-muted-foreground">Vigilância Sanitária</p>
             </div>
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="flex hover:bg-accent hover:text-accent-foreground p-2 rounded-md">
-                <ChevronLeft className={`h-5 w-5 transition-transform duration-200 ${!isExpanded ? 'rotate-180' : ''}`} />
-              </SidebarTrigger>
-              {isMobile && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setOpenMobile(false)}
-                  className="md:hidden"
-                  aria-label="Fechar menu"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              )}
-            </div>
+            {isMobile && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setOpenMobile(false)}
+                className="md:hidden"
+                aria-label="Fechar menu"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -118,3 +132,4 @@ export const AppSidebar = () => {
     </>
   );
 };
+
