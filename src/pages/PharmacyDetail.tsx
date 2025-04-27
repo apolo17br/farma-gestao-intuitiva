@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
@@ -6,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit, Trash2, ArrowLeft } from "lucide-react";
-import { Check } from "@/components/ui/check";
+import { Edit, Trash2, ArrowLeft, Check } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogTrigger,
