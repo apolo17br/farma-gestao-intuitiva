@@ -24,22 +24,24 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <PharmacyProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<AppLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="farmacias" element={<PharmacyList />} />
-                <Route path="farmacias/nova" element={<AddPharmacy />} />
-                <Route path="farmacias/:id" element={<PharmacyDetail />} />
-                <Route path="farmacias/:id/editar" element={<EditPharmacy />} />
-                <Route path="pendencias" element={<PendingIssues />} />
-                <Route path="prazos" element={<Deadlines />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <div className="flex min-h-screen w-full flex-col">
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<AppLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="farmacias" element={<PharmacyList />} />
+                  <Route path="farmacias/nova" element={<AddPharmacy />} />
+                  <Route path="farmacias/:id" element={<PharmacyDetail />} />
+                  <Route path="farmacias/:id/editar" element={<EditPharmacy />} />
+                  <Route path="pendencias" element={<PendingIssues />} />
+                  <Route path="prazos" element={<Deadlines />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </div>
         </PharmacyProvider>
       </TooltipProvider>
     </QueryClientProvider>
