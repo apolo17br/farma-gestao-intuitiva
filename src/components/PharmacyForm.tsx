@@ -191,12 +191,10 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
   };
 
   const handleAddSupervisor = () => {
-    if ((formData.responsaveisTecnicos?.length || 0) < 3) {
-      setFormData((prev) => ({
-        ...prev,
-        responsaveisTecnicos: [...(prev.responsaveisTecnicos || []), { nome: "", crf: "" }],
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      responsaveisTecnicos: [...(prev.responsaveisTecnicos || []), { nome: "", crf: "" }],
+    }));
   };
 
   const handleRemoveSupervisor = (index: number) => {
@@ -446,16 +444,14 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Responsáveis Técnicos</h3>
-            {formData.responsaveisTecnicos.length < 3 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddSupervisor}
-              >
-                Adicionar responsável
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddSupervisor}
+            >
+              Adicionar responsável
+            </Button>
           </div>
 
           {formData.responsaveisTecnicos.map((supervisor, index) => (
