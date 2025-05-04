@@ -76,7 +76,7 @@ const EditPharmacy: React.FC = () => {
     return (
       <div className="text-center text-red-600 mt-10">
         <p>{error}</p>
-        <Button onClick={() => navigate("/pharmacies")} variant="link">
+        <Button onClick={() => navigate("/farmacias")} variant="link">
           Voltar para a lista
         </Button>
       </div>
@@ -86,7 +86,7 @@ const EditPharmacy: React.FC = () => {
   return (
     <div className="space-y-6 pt-16 md:pt-0">
       <div className="flex flex-col gap-2 md:flex-row md:items-center">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/farmacias")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-2xl md:text-3xl font-bold">

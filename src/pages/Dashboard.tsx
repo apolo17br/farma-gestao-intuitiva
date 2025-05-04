@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { usePharmacy } from "../context/PharmacyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, AlertCircle, Calendar } from "lucide-react";
+import { Users, AlertCircle, Calendar, History, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -12,12 +12,16 @@ import {
   Cell,
 } from "recharts";
 import { Link } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Dashboard: React.FC = () => {
   const { pharmacies, loading } = usePharmacy();
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   // Dados para os indicadores
   const totalPharmacies = pharmacies?.length || 0;
@@ -64,6 +68,14 @@ const Dashboard: React.FC = () => {
       return dateB - dateA;
     })
     .slice(0, 5);
+
+  // Ordenar todas as farmácias por data de atualização para o histórico completo
+  const allPharmaciesHistory = [...(pharmacies || [])]
+    .sort((a, b) => {
+      const dateA = a?.ultimaAtualizacao ? new Date(a.ultimaAtualizacao).getTime() : 0;
+      const dateB = b?.ultimaAtualizacao ? new Date(b.ultimaAtualizacao).getTime() : 0;
+      return dateB - dateA;
+    });
 
   if (loading) {
     return (
@@ -163,8 +175,17 @@ const Dashboard: React.FC = () => {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Farmácias Recentemente Atualizadas</CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowHistoryModal(true)}
+              className="flex items-center gap-1"
+            >
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Ver histórico completo</span>
+            </Button>
           </CardHeader>
           <CardContent>
             {recentPharmacies.length > 0 ? (
@@ -268,6 +289,64 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de histórico completo */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Histórico Completo de Atualizações
+            </DialogTitle>
+            <DialogDescription>
+              Lista de todas as farmácias ordenadas por data de atualização
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-4 p-1">
+              {allPharmaciesHistory.map((pharmacy) => (
+                <div
+                  key={pharmacy.id}
+                  className="flex justify-between items-center border-b pb-4"
+                >
+                  <div>
+                    <Link
+                      to={`/farmacias/${pharmacy.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {pharmacy.nomeFantasia || pharmacy.razaoSocial}
+                    </Link>
+                    <p className="text-sm text-muted-foreground">
+                      {pharmacy.cnpj}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-muted-foreground block">
+                      Atualizado{" "}
+                      {formatDistanceToNow(
+                        new Date(pharmacy.ultimaAtualizacao || pharmacy.dataCadastro),
+                        { addSuffix: true, locale: ptBR }
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground block">
+                      {pharmacy.ultimaAtualizacao ? 
+                        format(new Date(pharmacy.ultimaAtualizacao), "dd/MM/yyyy HH:mm") : 
+                        "Nunca atualizado"
+                      }
+                    </span>
+                  </div>
+                </div>
+              ))}
+              
+              {allPharmaciesHistory.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma farmácia cadastrada no sistema.
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

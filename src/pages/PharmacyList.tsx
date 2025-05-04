@@ -1,11 +1,10 @@
-
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X, Clock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -20,6 +19,43 @@ import {
 
 const PharmacyList: React.FC = () => {
   const { filteredPharmacies, deletePharmacy, filterTerm, setFilterTerm } = usePharmacy();
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Carregar histórico do localStorage ao iniciar
+  useEffect(() => {
+    const savedHistory = localStorage.getItem("pharmacySearchHistory");
+    if (savedHistory) {
+      setSearchHistory(JSON.parse(savedHistory));
+    }
+  }, []);
+
+  // Salvar no histórico quando o usuário realizar uma busca
+  const handleSearch = (term: string) => {
+    setFilterTerm(term);
+    
+    if (term.trim() !== "" && !searchHistory.includes(term)) {
+      const newHistory = [term, ...searchHistory].slice(0, 5);
+      setSearchHistory(newHistory);
+      localStorage.setItem("pharmacySearchHistory", JSON.stringify(newHistory));
+    }
+    setShowHistory(false);
+  };
+
+  // Fechar o dropdown quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowHistory(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -34,14 +70,46 @@ const PharmacyList: React.FC = () => {
 
       <Card>
         <CardContent className="p-4">
-          <div className="relative">
+          <div className="relative" ref={searchRef}>
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou CNPJ..."
               className="pl-10"
               value={filterTerm}
               onChange={(e) => setFilterTerm(e.target.value)}
+              onFocus={() => setShowHistory(searchHistory.length > 0)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && filterTerm.trim() !== "") {
+                  handleSearch(filterTerm);
+                }
+              }}
             />
+            {filterTerm && (
+              <button
+                onClick={() => setFilterTerm("")}
+                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                aria-label="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            
+            {showHistory && searchHistory.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full bg-card border rounded-md shadow-sm">
+                <ul className="py-1">
+                  {searchHistory.map((term, index) => (
+                    <li 
+                      key={index}
+                      className="px-3 py-2 hover:bg-muted cursor-pointer flex items-center"
+                      onClick={() => handleSearch(term)}
+                    >
+                      <Clock className="h-3 w-3 mr-2 text-muted-foreground" />
+                      <span>{term}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -318,7 +318,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
 
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="telefone">
-                Telefone <span className="text-destructive">*</span>
+                Telefone
               </label>
               <Input
                 id="telefone"
@@ -326,7 +326,6 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
                 value={formData.telefone}
                 onChange={handleChange}
                 placeholder="(00) 00000-0000"
-                required
               />
             </div>
 
