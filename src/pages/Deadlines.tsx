@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
@@ -37,11 +36,18 @@ const Deadlines: React.FC = () => {
     4: "quarto",
   };
 
-  // Farmácias sem controle mensal para o mês atual
-  const pharmaciesWithoutCurrentMonthControl = pharmacies.filter(
+  // Farmácias sem controle mensal A para o mês atual
+  const pharmaciesWithoutCurrentMonthControlA = pharmacies.filter(
     (pharmacy) => 
-      !pharmacy.controlesMensais[monthPropertyMapping[currentMonth]] || 
-      pharmacy.controlesMensais[monthPropertyMapping[currentMonth]].trim() === ""
+      !pharmacy.controlesMensaisA[monthPropertyMapping[currentMonth]] || 
+      pharmacy.controlesMensaisA[monthPropertyMapping[currentMonth]].trim() === ""
+  );
+
+  // Farmácias sem controle mensal B2 para o mês atual
+  const pharmaciesWithoutCurrentMonthControlB2 = pharmacies.filter(
+    (pharmacy) => 
+      !pharmacy.controlesMensaisB2[monthPropertyMapping[currentMonth]] || 
+      pharmacy.controlesMensaisB2[monthPropertyMapping[currentMonth]].trim() === ""
   );
 
   // Farmácias sem controle trimestral para o trimestre atual
@@ -76,15 +82,15 @@ const Deadlines: React.FC = () => {
 
       <Card>
         <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="text-lg font-medium flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Controle Mensal - {currentMonthName}
+            Controle Mensal - Receitas A - {currentMonthName}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {pharmaciesWithoutCurrentMonthControl.length > 0 ? (
+          {pharmaciesWithoutCurrentMonthControlA.length > 0 ? (
             <div className="divide-y">
-              {pharmaciesWithoutCurrentMonthControl.map((pharmacy) => (
+              {pharmaciesWithoutCurrentMonthControlA.map((pharmacy) => (
                 <div key={pharmacy.id} className="p-4">
                   <div className="flex flex-wrap justify-between items-center gap-4">
                     <div>
@@ -99,7 +105,7 @@ const Deadlines: React.FC = () => {
                       </div>
                       <div className="mt-1 text-sm">
                         <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full inline-block">
-                          Pendente: {currentMonthName}
+                          Pendente: Receitas A - {currentMonthName}
                         </span>
                       </div>
                     </div>
@@ -118,7 +124,58 @@ const Deadlines: React.FC = () => {
           ) : (
             <div className="p-6 text-center">
               <p className="text-muted-foreground">
-                Não há farmácias com pendências de controle mensal para {currentMonthName}.
+                Não há farmácias com pendências de controle mensal de Receitas A para {currentMonthName}.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="border-b">
+          <CardTitle className="text-lg font-medium flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" />
+            Controle Mensal - Receitas B2 - {currentMonthName}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {pharmaciesWithoutCurrentMonthControlB2.length > 0 ? (
+            <div className="divide-y">
+              {pharmaciesWithoutCurrentMonthControlB2.map((pharmacy) => (
+                <div key={pharmacy.id} className="p-4">
+                  <div className="flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                      <Link
+                        to={`/farmacias/${pharmacy.id}`}
+                        className="text-lg font-medium hover:text-primary"
+                      >
+                        {pharmacy.nomeFantasia || pharmacy.razaoSocial}
+                      </Link>
+                      <div className="text-sm text-muted-foreground">
+                        CNPJ: {pharmacy.cnpj}
+                      </div>
+                      <div className="mt-1 text-sm">
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full inline-block">
+                          Pendente: Receitas B2 - {currentMonthName}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <Link to={`/farmacias/${pharmacy.id}/editar`}>
+                        <Button size="sm" variant="outline">
+                          <Edit className="mr-2 h-4 w-4" />
+                          Registrar
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <p className="text-muted-foreground">
+                Não há farmácias com pendências de controle mensal de Receitas B2 para {currentMonthName}.
               </p>
             </div>
           )}

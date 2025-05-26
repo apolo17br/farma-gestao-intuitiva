@@ -4,7 +4,18 @@ export interface TechnicalSupervisor {
 }
 
 export interface MonthlyControl {
-  [key: string]: string; // janeiro, fevereiro, etc.
+  janeiro: string;
+  fevereiro: string;
+  marco: string;
+  abril: string;
+  maio: string;
+  junho: string;
+  julho: string;
+  agosto: string;
+  setembro: string;
+  outubro: string;
+  novembro: string;
+  dezembro: string;
 }
 
 export interface QuarterlyControl {
@@ -35,7 +46,8 @@ export interface Pharmacy {
   telefone: string;
   email: string;
   responsaveisTecnicos: TechnicalSupervisor[];
-  controlesMensais: MonthlyControl;
+  controlesMensaisA: MonthlyControl;
+  controlesMensaisB2: MonthlyControl;
   controlesTrimestrais: QuarterlyControl;
   observacoes: string;
   dataCadastro: string;

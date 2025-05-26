@@ -235,18 +235,42 @@ const PharmacyDetail: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Controle Mensal de RMNRs</CardTitle>
+              <CardTitle>Controle Mensal de RMNRs - Receitas A</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {months.map((month) => (
                   <div key={month.key} className="flex items-center gap-2">
                     <div className={`h-4 w-4 rounded-sm border ${
-                      pharmacy.controlesMensais[month.key as keyof typeof pharmacy.controlesMensais] 
+                      pharmacy.controlesMensaisA[month.key as keyof typeof pharmacy.controlesMensaisA] 
                         ? 'bg-primary border-primary' 
                         : 'border-gray-300'
                     }`}>
-                      {pharmacy.controlesMensais[month.key as keyof typeof pharmacy.controlesMensais] && (
+                      {pharmacy.controlesMensaisA[month.key as keyof typeof pharmacy.controlesMensaisA] && (
+                        <Check className="h-4 w-4 text-primary-foreground" />
+                      )}
+                    </div>
+                    <span className="text-sm">{month.label}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Controle Mensal de RMNRs - Receitas B2</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {months.map((month) => (
+                  <div key={month.key} className="flex items-center gap-2">
+                    <div className={`h-4 w-4 rounded-sm border ${
+                      pharmacy.controlesMensaisB2[month.key as keyof typeof pharmacy.controlesMensaisB2] 
+                        ? 'bg-primary border-primary' 
+                        : 'border-gray-300'
+                    }`}>
+                      {pharmacy.controlesMensaisB2[month.key as keyof typeof pharmacy.controlesMensaisB2] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
                     </div>

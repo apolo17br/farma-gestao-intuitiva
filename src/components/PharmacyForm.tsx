@@ -27,7 +27,21 @@ const emptyPharmacy = {
   telefone: "",
   email: "",
   responsaveisTecnicos: [{ nome: "", crf: "" }],
-  controlesMensais: {
+  controlesMensaisA: {
+    janeiro: "",
+    fevereiro: "",
+    marco: "",
+    abril: "",
+    maio: "",
+    junho: "",
+    julho: "",
+    agosto: "",
+    setembro: "",
+    outubro: "",
+    novembro: "",
+    dezembro: "",
+  },
+  controlesMensaisB2: {
     janeiro: "",
     fevereiro: "",
     marco: "",
@@ -107,7 +121,6 @@ const ensureAddress = (address: Address | null | undefined): Address => {
 };
 
 const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false }) => {
-  // Ajustar tipo do estado para incluir Address
   const [formData, setFormData] = useState<Omit<Pharmacy, "id" | "dataCadastro" | "ultimaAtualizacao"> & { address: Address }>(() => {
     if (pharmacy) {
       return {
@@ -118,13 +131,13 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
-        controlesMensais: ensureMonthlyControls(pharmacy.controlesMensais),
+        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA),
+        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2),
         controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais),
         address: ensureAddress(pharmacy.address),
       };
     } else {
-      // Garantir que address seja inicializado corretamente
-      return { ...emptyPharmacy, address: { ...emptyAddress } }; 
+      return { ...emptyPharmacy, address: { ...emptyAddress } };
     }
   });
 
@@ -142,12 +155,12 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
-        controlesMensais: ensureMonthlyControls(pharmacy.controlesMensais),
+        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA),
+        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2),
         controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais),
         address: ensureAddress(pharmacy.address),
       }));
     } else {
-      // Resetar se pharmacy se tornar null/undefined (ex: na criação)
       setFormData({ ...emptyPharmacy, address: { ...emptyAddress } });
     }
   }, [pharmacy]);
@@ -207,11 +220,11 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     }));
   };
 
-  const handleMonthlyControlChange = (month: string, checked: boolean) => {
+  const handleMonthlyControlChange = (type: 'A' | 'B2', month: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
-      controlesMensais: {
-        ...prev.controlesMensais,
+      [`controlesMensais${type}`]: {
+        ...prev[`controlesMensais${type}` as keyof typeof prev],
         [month]: checked ? "realizado" : "",
       },
     }));
@@ -511,20 +524,47 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
       <Card>
         <CardContent className="p-6">
           <h3 className="text-lg font-semibold mb-4">
-            Controle Mensal de RMNRs (Receitas A e B2)
+            Controle Mensal de RMNRs - Receitas A
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {months.map((month) => (
               <div key={month.key} className="flex items-start space-x-2">
                 <Checkbox
-                  id={`monthly-${month.key}`}
-                  checked={!!formData.controlesMensais[month.key]}
+                  id={`monthly-a-${month.key}`}
+                  checked={!!formData.controlesMensaisA[month.key]}
                   onCheckedChange={(checked) => 
-                    handleMonthlyControlChange(month.key, checked as boolean)
+                    handleMonthlyControlChange('A', month.key, checked as boolean)
                   }
                 />
                 <label
-                  htmlFor={`monthly-${month.key}`}
+                  htmlFor={`monthly-a-${month.key}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {month.label}
+                </label>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold mb-4">
+            Controle Mensal de RMNRs - Receitas B2
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {months.map((month) => (
+              <div key={month.key} className="flex items-start space-x-2">
+                <Checkbox
+                  id={`monthly-b2-${month.key}`}
+                  checked={!!formData.controlesMensaisB2[month.key]}
+                  onCheckedChange={(checked) => 
+                    handleMonthlyControlChange('B2', month.key, checked as boolean)
+                  }
+                />
+                <label
+                  htmlFor={`monthly-b2-${month.key}`}
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   {month.label}

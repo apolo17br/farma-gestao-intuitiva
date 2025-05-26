@@ -49,7 +49,8 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           responsaveisTecnicos:pharmacy_technical_supervisors(
             technical_supervisor:technical_supervisors(*)
           ),
-          controlesMensais:monthly_controls(*),
+          controlesMensaisA:monthly_controls_a(*),
+          controlesMensaisB2:monthly_controls_b2(*),
           controlesTrimestrais:quarterly_controls(*),
           address:addresses(*)
         `);
@@ -70,7 +71,8 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           dataCadastro: pharmacy.data_cadastro,
           ultimaAtualizacao: pharmacy.ultima_atualizacao,
           responsaveisTecnicos: pharmacy?.responsaveisTecnicos?.map((rt: { technical_supervisor: TechnicalSupervisor }) => rt.technical_supervisor) || [],
-          controlesMensais: pharmacy?.controlesMensais?.[0] || {},
+          controlesMensaisA: pharmacy?.controlesMensaisA?.[0] || {},
+          controlesMensaisB2: pharmacy?.controlesMensaisB2?.[0] || {},
           controlesTrimestrais: pharmacy?.controlesTrimestrais?.[0] || {},
           address: addressData ? {
              id: addressData.id,
@@ -167,15 +169,20 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       }
 
       if (pharmacyId) {
-         const { error: monthlyError } = await supabase
-          .from('monthly_controls')
-          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensais });
-         if (monthlyError) throw monthlyError;
+        const { error: monthlyAError } = await supabase
+          .from('monthly_controls_a')
+          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisA });
+        if (monthlyAError) throw monthlyAError;
 
-         const { error: quarterlyError } = await supabase
-           .from('quarterly_controls')
-           .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesTrimestrais });
-         if (quarterlyError) throw quarterlyError;
+        const { error: monthlyB2Error } = await supabase
+          .from('monthly_controls_b2')
+          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisB2 });
+        if (monthlyB2Error) throw monthlyB2Error;
+
+        const { error: quarterlyError } = await supabase
+          .from('quarterly_controls')
+          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesTrimestrais });
+        if (quarterlyError) throw quarterlyError;
       }
 
       await fetchPharmacies();
@@ -289,27 +296,50 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         if (deleteAddressError) throw deleteAddressError;
       }
 
-      const { data: existingMonthly, error: checkMonthlyError } = await supabase
-         .from('monthly_controls')
+      const { data: existingMonthlyA, error: checkMonthlyAError } = await supabase
+         .from('monthly_controls_a')
          .select('id')
          .eq('pharmacy_id', pharmacyId)
          .maybeSingle();
       
-      if (checkMonthlyError && checkMonthlyError.code !== 'PGRST116') {
-         throw checkMonthlyError;
+      if (checkMonthlyAError && checkMonthlyAError.code !== 'PGRST116') {
+         throw checkMonthlyAError;
       }
 
-      if(existingMonthly) {
-         const { error: monthlyError } = await supabase
-           .from('monthly_controls')
-           .update(updatedPharmacy.controlesMensais)
+      if(existingMonthlyA) {
+         const { error: monthlyAError } = await supabase
+           .from('monthly_controls_a')
+           .update(updatedPharmacy.controlesMensaisA)
            .eq('pharmacy_id', pharmacyId);
-         if (monthlyError) throw monthlyError;
+         if (monthlyAError) throw monthlyAError;
       } else {
-         const { error: insertMonthlyError } = await supabase
-           .from('monthly_controls')
-           .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensais });
-         if (insertMonthlyError) throw insertMonthlyError;
+         const { error: insertMonthlyAError } = await supabase
+           .from('monthly_controls_a')
+           .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisA });
+         if (insertMonthlyAError) throw insertMonthlyAError;
+      }
+
+      const { data: existingMonthlyB2, error: checkMonthlyB2Error } = await supabase
+         .from('monthly_controls_b2')
+         .select('id')
+         .eq('pharmacy_id', pharmacyId)
+         .maybeSingle();
+      
+      if (checkMonthlyB2Error && checkMonthlyB2Error.code !== 'PGRST116') {
+         throw checkMonthlyB2Error;
+      }
+
+      if(existingMonthlyB2) {
+         const { error: monthlyB2Error } = await supabase
+           .from('monthly_controls_b2')
+           .update(updatedPharmacy.controlesMensaisB2)
+           .eq('pharmacy_id', pharmacyId);
+         if (monthlyB2Error) throw monthlyB2Error;
+      } else {
+         const { error: insertMonthlyB2Error } = await supabase
+           .from('monthly_controls_b2')
+           .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisB2 });
+         if (insertMonthlyB2Error) throw insertMonthlyB2Error;
       }
 
       const { data: existingQuarterly, error: checkQuarterlyError } = await supabase
@@ -381,7 +411,8 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           responsaveisTecnicos:pharmacy_technical_supervisors(
             technical_supervisor:technical_supervisors(*)
           ),
-          controlesMensais:monthly_controls(*),
+          controlesMensaisA:monthly_controls_a(*),
+          controlesMensaisB2:monthly_controls_b2(*),
           controlesTrimestrais:quarterly_controls(*),
           address:addresses(*)
         `)
@@ -404,7 +435,8 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           dataCadastro: data.data_cadastro,
           ultimaAtualizacao: data.ultima_atualizacao,
           responsaveisTecnicos: data.responsaveisTecnicos?.map((rt: { technical_supervisor: TechnicalSupervisor }) => rt.technical_supervisor) || [],
-          controlesMensais: data.controlesMensais?.[0] || {},
+          controlesMensaisA: data.controlesMensaisA?.[0] || {},
+          controlesMensaisB2: data.controlesMensaisB2?.[0] || {},
           controlesTrimestrais: data.controlesTrimestrais?.[0] || {},
           address: addressData ? {
              id: addressData.id,
