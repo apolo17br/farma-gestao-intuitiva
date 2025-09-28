@@ -28,11 +28,24 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
   
   const filteredPharmacies = pharmacies.filter((pharmacy) => {
     if (!pharmacy) return false;
-    return (
-      (pharmacy.nomeFantasia?.toLowerCase() || '').includes(filterTerm.toLowerCase()) || 
-      (pharmacy.razaoSocial?.toLowerCase() || '').includes(filterTerm.toLowerCase()) ||
-      (pharmacy.cnpj || '').includes(filterTerm)
+    const searchTerm = filterTerm.toLowerCase();
+    
+    // Busca por nome fantasia, razão social, CNPJ, alvará e e-mail
+    const basicMatch = (
+      (pharmacy.nomeFantasia?.toLowerCase() || '').includes(searchTerm) || 
+      (pharmacy.razaoSocial?.toLowerCase() || '').includes(searchTerm) ||
+      (pharmacy.cnpj || '').includes(filterTerm) ||
+      (pharmacy.alvara?.toLowerCase() || '').includes(searchTerm) ||
+      (pharmacy.email?.toLowerCase() || '').includes(searchTerm)
     );
+    
+    // Busca por responsáveis técnicos
+    const supervisorMatch = pharmacy.responsaveisTecnicos?.some(supervisor => 
+      (supervisor.nome?.toLowerCase() || '').includes(searchTerm) ||
+      (supervisor.crf || '').includes(filterTerm)
+    ) || false;
+    
+    return basicMatch || supervisorMatch;
   });
 
   useEffect(() => {
@@ -66,6 +79,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           razaoSocial: pharmacy.razao_social,
           nomeFantasia: pharmacy.nome_fantasia,
           telefone: pharmacy.telefone,
+          alvara: pharmacy.alvara,
           email: pharmacy.email,
           observacoes: pharmacy.observacoes,
           dataCadastro: pharmacy.data_cadastro,
@@ -129,6 +143,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           razao_social: newPharmacy.razaoSocial,
           nome_fantasia: newPharmacy.nomeFantasia,
           telefone: newPharmacy.telefone,
+          alvara: newPharmacy.alvara,
           email: newPharmacy.email,
           observacoes: newPharmacy.observacoes
         })
@@ -210,6 +225,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           razao_social: updatedPharmacy.razaoSocial,
           nome_fantasia: updatedPharmacy.nomeFantasia,
           telefone: updatedPharmacy.telefone,
+          alvara: updatedPharmacy.alvara,
           email: updatedPharmacy.email,
           observacoes: updatedPharmacy.observacoes,
           ultima_atualizacao: new Date().toISOString()
@@ -430,6 +446,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           razaoSocial: data.razao_social,
           nomeFantasia: data.nome_fantasia,
           telefone: data.telefone,
+          alvara: data.alvara,
           email: data.email,
           observacoes: data.observacoes,
           dataCadastro: data.data_cadastro,
