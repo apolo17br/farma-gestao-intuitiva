@@ -25,6 +25,7 @@ const emptyPharmacy = {
   razaoSocial: "",
   nomeFantasia: "",
   telefone: "",
+  alvara: "",
   email: "",
   responsaveisTecnicos: [{ nome: "", crf: "" }],
   controlesMensaisA: {
@@ -128,6 +129,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         razaoSocial: ensureString(pharmacy.razaoSocial),
         nomeFantasia: ensureString(pharmacy.nomeFantasia),
         telefone: ensureString(pharmacy.telefone),
+        alvara: ensureString(pharmacy.alvara),
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
@@ -152,6 +154,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         razaoSocial: ensureString(pharmacy.razaoSocial),
         nomeFantasia: ensureString(pharmacy.nomeFantasia),
         telefone: ensureString(pharmacy.telefone),
+        alvara: ensureString(pharmacy.alvara),
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
@@ -221,13 +224,23 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
   };
 
   const handleMonthlyControlChange = (type: 'A' | 'B2', month: string, checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      [`controlesMensais${type}`]: {
-        ...prev[`controlesMensais${type}` as keyof typeof prev],
-        [month]: checked ? "realizado" : "",
-      },
-    }));
+    if (type === 'A') {
+      setFormData((prev) => ({
+        ...prev,
+        controlesMensaisA: {
+          ...prev.controlesMensaisA,
+          [month]: checked ? "realizado" : "",
+        },
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        controlesMensaisB2: {
+          ...prev.controlesMensaisB2,
+          [month]: checked ? "realizado" : "",
+        },
+      }));
+    }
   };
 
   const handleQuarterlyControlChange = (quarter: string, checked: boolean) => {
@@ -340,6 +353,21 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
                 onChange={handleChange}
                 placeholder="(00) 00000-0000"
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="alvara">
+                Alvará
+              </label>
+              <Input
+                id="alvara"
+                name="alvara"
+                value={formData.alvara}
+                onChange={handleChange}
+                placeholder="Número do alvará"
+                maxLength={100}
+              />
+              <p className="form-hint">Máximo 100 caracteres</p>
             </div>
 
             <div className="space-y-2 md:col-span-2">

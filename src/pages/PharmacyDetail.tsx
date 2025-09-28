@@ -148,6 +148,10 @@ const PharmacyDetail: React.FC = () => {
                   <p className="text-sm text-muted-foreground">Telefone</p>
                   <p className="font-medium">{pharmacy.telefone}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Alvará</p>
+                  <p className="font-medium">{pharmacy.alvara || "Não informado"}</p>
+                </div>
                 <div className="md:col-span-2">
                   <p className="text-sm text-muted-foreground">E-mail</p>
                   <p className="font-medium">{pharmacy.email || "Não informado"}</p>

@@ -44,6 +44,7 @@ export interface Pharmacy {
   razaoSocial: string;
   nomeFantasia: string;
   telefone: string;
+  alvara?: string; // Campo opcional para o alvará
   email: string;
   responsaveisTecnicos: TechnicalSupervisor[];
   controlesMensaisA: MonthlyControl;

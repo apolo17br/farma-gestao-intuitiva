@@ -125,7 +125,7 @@ export const AppSidebar = () => {
         <SidebarFooter className="p-4 border-t border-gray-200">
           <div className="text-xs text-muted-foreground">
             <p>© 2025 Farma-Gestão</p>
-            <p>v1.0.0</p>
+            <p>v1.1.0</p>
           </div>
         </SidebarFooter>
       </Sidebar>
