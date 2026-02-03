@@ -84,66 +84,71 @@ const Dashboard: React.FC = () => {
     };
 
     pharmacies.forEach(pharmacy => {
-      // Verificar controles mensais A
-      Object.entries(pharmacy.controlesMensaisA).forEach(([monthKey, control]) => {
-        if (isControlPending(control)) {
-          const monthIndex = Object.keys(monthPropertyMapping).find(
-            key => monthPropertyMapping[parseInt(key)] === monthKey
-          );
-          if (monthIndex !== undefined) {
-            const monthName = monthNames[parseInt(monthIndex)];
-            pendingData[monthName]["Receitas A"].push({
-              pharmacy,
-              month: monthName,
-              category: "Receitas A",
-              type: "monthly"
-            });
-          }
-        }
-      });
-
-      // Verificar controles mensais B2
-      Object.entries(pharmacy.controlesMensaisB2).forEach(([monthKey, control]) => {
-        if (isControlPending(control)) {
-          const monthIndex = Object.keys(monthPropertyMapping).find(
-            key => monthPropertyMapping[parseInt(key)] === monthKey
-          );
-          if (monthIndex !== undefined) {
-            const monthName = monthNames[parseInt(monthIndex)];
-            pendingData[monthName]["Receitas B2"].push({
-              pharmacy,
-              month: monthName,
-              category: "Receitas B2",
-              type: "monthly"
-            });
-          }
-        }
-      });
-
-      // Verificar controles trimestrais
-      Object.entries(pharmacy.controlesTrimestrais).forEach(([quarterKey, control]) => {
-        if (isControlPending(control)) {
-          const quarterNumber = Object.keys(quarterPropertyMapping).find(
-            key => quarterPropertyMapping[parseInt(key)] === quarterKey
-          );
-          if (quarterNumber !== undefined) {
-            const quarter = parseInt(quarterNumber);
-            // Mapear trimestre para meses
-            const monthsInQuarter = [
-              [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
-            ];
-            monthsInQuarter[quarter - 1].forEach(monthIndex => {
-              const monthName = monthNames[monthIndex];
-              pendingData[monthName]["Trimestral"].push({
+      pharmacy.controlesMensaisA?.forEach(controlItem => {
+        Object.entries(controlItem).forEach(([monthKey, control]) => {
+          if (monthKey === 'created_at' || monthKey === 'id' || monthKey === 'pharmacy_id') return;
+          if (isControlPending(control as string)) {
+            const monthIndex = Object.keys(monthPropertyMapping).find(
+              key => monthPropertyMapping[parseInt(key)] === monthKey
+            );
+            if (monthIndex !== undefined) {
+              const monthName = monthNames[parseInt(monthIndex)];
+              pendingData[monthName]["Receitas A"].push({
                 pharmacy,
                 month: monthName,
-                category: "Trimestral",
-                type: "quarterly",
-                quarter
+                category: "Receitas A",
+                type: "monthly"
               });
-            });
+            }
           }
-        }
+        });
+      });
+
+      pharmacy.controlesMensaisB2?.forEach(controlItem => {
+        Object.entries(controlItem).forEach(([monthKey, control]) => {
+          if (monthKey === 'created_at' || monthKey === 'id' || monthKey === 'pharmacy_id') return;
+          if (isControlPending(control as string)) {
+            const monthIndex = Object.keys(monthPropertyMapping).find(
+              key => monthPropertyMapping[parseInt(key)] === monthKey
+            );
+            if (monthIndex !== undefined) {
+              const monthName = monthNames[parseInt(monthIndex)];
+              pendingData[monthName]["Receitas B2"].push({
+                pharmacy,
+                month: monthName,
+                category: "Receitas B2",
+                type: "monthly"
+              });
+            }
+          }
+        });
+      });
+
+      pharmacy.controlesTrimestrais?.forEach(controlItem => {
+        Object.entries(controlItem).forEach(([quarterKey, control]) => {
+          if (quarterKey === 'created_at' || quarterKey === 'id' || quarterKey === 'pharmacy_id') return;
+          if (isControlPending(control as string)) {
+            const quarterNumber = Object.keys(quarterPropertyMapping).find(
+              key => quarterPropertyMapping[parseInt(key)] === quarterKey
+            );
+            if (quarterNumber !== undefined) {
+              const quarter = parseInt(quarterNumber);
+              const monthsInQuarter = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
+              ];
+              monthsInQuarter[quarter - 1].forEach(monthIndex => {
+                const monthName = monthNames[monthIndex];
+                pendingData[monthName]["Trimestral"].push({
+                  pharmacy,
+                  month: monthName,
+                  category: "Trimestral",
+                  type: "quarterly",
+                  quarter
+                });
+              });
+            }
+          }
+        });
       });
     });
 

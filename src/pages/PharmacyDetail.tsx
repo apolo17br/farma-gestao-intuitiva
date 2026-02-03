@@ -79,6 +79,19 @@ const PharmacyDetail: React.FC = () => {
     { key: "quarto", label: "4º Trimestre" },
   ];
 
+
+  const getControlForYear = (controls: any[]) => {
+    if (!controls || !Array.isArray(controls)) return {};
+    return controls.find(c => {
+      if (!c.created_at) return false;
+      return new Date(c.created_at).getFullYear() === selectedYear
+    }) || {};
+  };
+
+  const currentMonthlyA = pharmacy ? getControlForYear(pharmacy.controlesMensaisA) : {};
+  const currentMonthlyB2 = pharmacy ? getControlForYear(pharmacy.controlesMensaisB2) : {};
+  const currentQuarterly = pharmacy ? getControlForYear(pharmacy.controlesTrimestrais) : {};
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -255,11 +268,11 @@ const PharmacyDetail: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {months.map((month) => (
                   <div key={month.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${pharmacy.controlesMensaisA[month.key as keyof typeof pharmacy.controlesMensaisA]
-                        ? 'bg-primary border-primary'
-                        : 'border-gray-300'
+                    <div className={`h-4 w-4 rounded-sm border ${currentMonthlyA[month.key]
+                      ? 'bg-primary border-primary'
+                      : 'border-gray-300'
                       }`}>
-                      {pharmacy.controlesMensaisA[month.key as keyof typeof pharmacy.controlesMensaisA] && (
+                      {currentMonthlyA[month.key] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
                     </div>
@@ -278,11 +291,11 @@ const PharmacyDetail: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {months.map((month) => (
                   <div key={month.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${pharmacy.controlesMensaisB2[month.key as keyof typeof pharmacy.controlesMensaisB2]
-                        ? 'bg-primary border-primary'
-                        : 'border-gray-300'
+                    <div className={`h-4 w-4 rounded-sm border ${currentMonthlyB2[month.key]
+                      ? 'bg-primary border-primary'
+                      : 'border-gray-300'
                       }`}>
-                      {pharmacy.controlesMensaisB2[month.key as keyof typeof pharmacy.controlesMensaisB2] && (
+                      {currentMonthlyB2[month.key] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
                     </div>
@@ -301,11 +314,11 @@ const PharmacyDetail: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 {quarters.map((quarter) => (
                   <div key={quarter.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${pharmacy.controlesTrimestrais[quarter.key as keyof typeof pharmacy.controlesTrimestrais]
-                        ? 'bg-primary border-primary'
-                        : 'border-gray-300'
+                    <div className={`h-4 w-4 rounded-sm border ${currentQuarterly[quarter.key]
+                      ? 'bg-primary border-primary'
+                      : 'border-gray-300'
                       }`}>
-                      {pharmacy.controlesTrimestrais[quarter.key as keyof typeof pharmacy.controlesTrimestrais] && (
+                      {currentQuarterly[quarter.key] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
                     </div>

@@ -97,9 +97,9 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           dataCadastro: pharmacy.data_cadastro,
           ultimaAtualizacao: pharmacy.ultima_atualizacao,
           responsaveisTecnicos: pharmacy?.responsaveisTecnicos?.map((rt: { technical_supervisor: TechnicalSupervisor }) => rt.technical_supervisor) || [],
-          controlesMensaisA: filterByYear(pharmacy?.controlesMensaisA),
-          controlesMensaisB2: filterByYear(pharmacy?.controlesMensaisB2),
-          controlesTrimestrais: filterByYear(pharmacy?.controlesTrimestrais),
+          controlesMensaisA: pharmacy.controlesMensaisA || [],
+          controlesMensaisB2: pharmacy.controlesMensaisB2 || [],
+          controlesTrimestrais: pharmacy.controlesTrimestrais || [],
           address: addressData ? {
             id: addressData.id,
             pharmacy_id: addressData.pharmacy_id,
@@ -345,16 +345,20 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         throw checkMonthlyAError;
       }
 
+      const monthlyAPayload = Array.isArray(updatedPharmacy.controlesMensaisA)
+        ? updatedPharmacy.controlesMensaisA.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {}
+        : updatedPharmacy.controlesMensaisA;
+
       if (existingMonthlyA) {
         const { error: monthlyAError } = await supabase
           .from('monthly_controls_a')
-          .update(updatedPharmacy.controlesMensaisA)
+          .update(monthlyAPayload)
           .eq('id', existingMonthlyA.id);
         if (monthlyAError) throw monthlyAError;
       } else {
         const { error: insertMonthlyAError } = await supabase
           .from('monthly_controls_a')
-          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisA, created_at: forcedCreationDate });
+          .insert({ pharmacy_id: pharmacyId, ...monthlyAPayload, created_at: forcedCreationDate });
         if (insertMonthlyAError) throw insertMonthlyAError;
       }
 
@@ -370,16 +374,20 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         throw checkMonthlyB2Error;
       }
 
+      const monthlyB2Payload = Array.isArray(updatedPharmacy.controlesMensaisB2)
+        ? updatedPharmacy.controlesMensaisB2.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {}
+        : updatedPharmacy.controlesMensaisB2;
+
       if (existingMonthlyB2) {
         const { error: monthlyB2Error } = await supabase
           .from('monthly_controls_b2')
-          .update(updatedPharmacy.controlesMensaisB2)
+          .update(monthlyB2Payload)
           .eq('id', existingMonthlyB2.id);
         if (monthlyB2Error) throw monthlyB2Error;
       } else {
         const { error: insertMonthlyB2Error } = await supabase
           .from('monthly_controls_b2')
-          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisB2, created_at: forcedCreationDate });
+          .insert({ pharmacy_id: pharmacyId, ...monthlyB2Payload, created_at: forcedCreationDate });
         if (insertMonthlyB2Error) throw insertMonthlyB2Error;
       }
 
@@ -395,16 +403,20 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         throw checkQuarterlyError;
       }
 
+      const quarterlyPayload = Array.isArray(updatedPharmacy.controlesTrimestrais)
+        ? updatedPharmacy.controlesTrimestrais.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {}
+        : updatedPharmacy.controlesTrimestrais;
+
       if (existingQuarterly) {
         const { error: quarterlyError } = await supabase
           .from('quarterly_controls')
-          .update(updatedPharmacy.controlesTrimestrais)
+          .update(quarterlyPayload)
           .eq('id', existingQuarterly.id);
         if (quarterlyError) throw quarterlyError;
       } else {
         const { error: insertQuarterlyError } = await supabase
           .from('quarterly_controls')
-          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesTrimestrais, created_at: forcedCreationDate });
+          .insert({ pharmacy_id: pharmacyId, ...quarterlyPayload, created_at: forcedCreationDate });
         if (insertQuarterlyError) throw insertQuarterlyError;
       }
 
@@ -479,9 +491,9 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           dataCadastro: data.data_cadastro,
           ultimaAtualizacao: data.ultima_atualizacao,
           responsaveisTecnicos: data.responsaveisTecnicos?.map((rt: { technical_supervisor: TechnicalSupervisor }) => rt.technical_supervisor) || [],
-          controlesMensaisA: data.controlesMensaisA?.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {},
-          controlesMensaisB2: data.controlesMensaisB2?.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {},
-          controlesTrimestrais: data.controlesTrimestrais?.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {},
+          controlesMensaisA: data.controlesMensaisA || [],
+          controlesMensaisB2: data.controlesMensaisB2 || [],
+          controlesTrimestrais: data.controlesTrimestrais || [],
           address: addressData ? {
             id: addressData.id,
             pharmacy_id: addressData.pharmacy_id,

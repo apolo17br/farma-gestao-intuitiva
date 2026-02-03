@@ -79,30 +79,42 @@ const ensureSupervisors = (supervisors: TechnicalSupervisor[] | null | undefined
   supervisors && supervisors.length > 0 ? supervisors.map(s => ({ nome: ensureString(s.nome), crf: ensureString(s.crf) })) : [{ nome: "", crf: "" }];
 
 // Função auxiliar para garantir que os controles mensais não sejam null/undefined
-const ensureMonthlyControls = (controls: MonthlyControl | null | undefined): MonthlyControl => {
+const ensureMonthlyControls = (controls: any, year?: number): MonthlyControl => {
   const defaultControls: MonthlyControl = {
     janeiro: "", fevereiro: "", marco: "", abril: "", maio: "", junho: "",
     julho: "", agosto: "", setembro: "", outubro: "", novembro: "", dezembro: ""
   };
-  if (!controls) return defaultControls;
+
+  let targetControl = controls;
+  if (Array.isArray(controls) && year) {
+    targetControl = controls.find((c: any) => new Date(c.created_at).getFullYear() === year);
+  }
+
+  if (!targetControl) return defaultControls;
   // Garante que cada mês tenha um valor string
   Object.keys(defaultControls).forEach(key => {
     const monthKey = key as keyof MonthlyControl;
-    (defaultControls[monthKey] as string) = ensureString(controls[monthKey]);
+    (defaultControls[monthKey] as string) = ensureString(targetControl[monthKey]);
   });
   return defaultControls;
 };
 
 // Função auxiliar para garantir que os controles trimestrais não sejam null/undefined
-const ensureQuarterlyControls = (controls: QuarterlyControl | null | undefined): QuarterlyControl => {
+const ensureQuarterlyControls = (controls: any, year?: number): QuarterlyControl => {
   const defaultControls: QuarterlyControl = {
     primeiro: "", segundo: "", terceiro: "", quarto: ""
   };
-  if (!controls) return defaultControls;
+
+  let targetControl = controls;
+  if (Array.isArray(controls) && year) {
+    targetControl = controls.find((c: any) => new Date(c.created_at).getFullYear() === year);
+  }
+
+  if (!targetControl) return defaultControls;
   // Garante que cada trimestre tenha um valor string
   Object.keys(defaultControls).forEach(key => {
     const quarterKey = key as keyof QuarterlyControl;
-    (defaultControls[quarterKey] as string) = ensureString(controls[quarterKey]);
+    (defaultControls[quarterKey] as string) = ensureString(targetControl[quarterKey]);
   });
   return defaultControls;
 };
@@ -121,8 +133,18 @@ const ensureAddress = (address: Address | null | undefined): Address => {
   };
 };
 
+type PharmacyFormData = Omit<Pharmacy, "id" | "dataCadastro" | "ultimaAtualizacao" | "controlesMensaisA" | "controlesMensaisB2" | "controlesTrimestrais"> & {
+  controlesMensaisA: MonthlyControl;
+  controlesMensaisB2: MonthlyControl;
+  controlesTrimestrais: QuarterlyControl;
+  address: Address;
+};
+
 const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false }) => {
-  const [formData, setFormData] = useState<Omit<Pharmacy, "id" | "dataCadastro" | "ultimaAtualizacao"> & { address: Address }>(() => {
+  const { addPharmacy, updatePharmacy, selectedYear } = usePharmacy();
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState<PharmacyFormData>(() => {
     if (pharmacy) {
       return {
         cnpj: ensureString(pharmacy.cnpj),
@@ -133,18 +155,15 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
-        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA),
-        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2),
-        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais),
+        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA, selectedYear),
+        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2, selectedYear),
+        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais, selectedYear),
         address: ensureAddress(pharmacy.address),
       };
     } else {
       return { ...emptyPharmacy, address: { ...emptyAddress } };
     }
   });
-
-  const { addPharmacy, updatePharmacy, selectedYear } = usePharmacy();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (pharmacy) {
@@ -158,15 +177,15 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
-        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA),
-        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2),
-        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais),
+        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA, selectedYear),
+        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2, selectedYear),
+        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais, selectedYear),
         address: ensureAddress(pharmacy.address),
       }));
     } else {
       setFormData({ ...emptyPharmacy, address: { ...emptyAddress } });
     }
-  }, [pharmacy]);
+  }, [pharmacy, selectedYear]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

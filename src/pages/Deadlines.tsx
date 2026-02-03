@@ -90,82 +90,90 @@ const Deadlines: React.FC = () => {
     setSortOrder(prev => prev === "newest" ? "oldest" : "newest");
   };
 
-  // Processar todas as pendências por mês e categoria
+  // Processar todas as pendências por mês e categoria (considerando ano)
   const allPendingData = useMemo(() => {
-    const pendingData: { [month: string]: { [category: string]: any[] } } = {};
-
-    // Inicializar estrutura para todos os meses
-    for (let month = 0; month < 12; month++) {
-      const monthName = monthNames[month];
-      pendingData[monthName] = {
-        "Receitas A": [],
-        "Receitas B2": [],
-        "Trimestral": []
-      };
-    }
+    const pendingData: { [monthKey: string]: { [category: string]: any[] } } = {};
 
     pharmacies.forEach(pharmacy => {
-      // Verificar controles mensais A
-      Object.entries(pharmacy.controlesMensaisA).forEach(([monthKey, control]) => {
-        if (isControlPending(control)) {
-          const monthIndex = Object.keys(monthPropertyMapping).find(
-            key => monthPropertyMapping[parseInt(key)] === monthKey
-          );
-          if (monthIndex !== undefined) {
-            const monthName = monthNames[parseInt(monthIndex)];
-            pendingData[monthName]["Receitas A"].push({
-              pharmacy,
-              month: monthName,
-              category: "Receitas A",
-              type: "monthly"
-            });
-          }
-        }
-      });
+      // Helper param iterar meses de um controle
+      const processControl = (
+        controls: any[],
+        categoryName: string,
+        controlType: "monthly" | "quarterly",
+        mapping: { [key: number]: string }
+      ) => {
+        if (!controls || !Array.isArray(controls)) return;
 
-      // Verificar controles mensais B2
-      Object.entries(pharmacy.controlesMensaisB2).forEach(([monthKey, control]) => {
-        if (isControlPending(control)) {
-          const monthIndex = Object.keys(monthPropertyMapping).find(
-            key => monthPropertyMapping[parseInt(key)] === monthKey
-          );
-          if (monthIndex !== undefined) {
-            const monthName = monthNames[parseInt(monthIndex)];
-            pendingData[monthName]["Receitas B2"].push({
-              pharmacy,
-              month: monthName,
-              category: "Receitas B2",
-              type: "monthly"
-            });
-          }
-        }
-      });
+        controls.forEach(controlObj => {
+          if (!controlObj.created_at) return;
+          const year = new Date(controlObj.created_at).getFullYear();
 
-      // Verificar controles trimestrais
-      Object.entries(pharmacy.controlesTrimestrais).forEach(([quarterKey, control]) => {
-        if (isControlPending(control)) {
-          const quarterNumber = Object.keys(quarterPropertyMapping).find(
-            key => quarterPropertyMapping[parseInt(key)] === quarterKey
-          );
-          if (quarterNumber !== undefined) {
-            const quarter = parseInt(quarterNumber);
-            // Mapear trimestre para meses
-            const monthsInQuarter = [
-              [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
-            ];
-            monthsInQuarter[quarter - 1].forEach(monthIndex => {
-              const monthName = monthNames[monthIndex];
-              pendingData[monthName]["Trimestral"].push({
-                pharmacy,
-                month: monthName,
-                category: "Trimestral",
-                type: "quarterly",
-                quarter
-              });
-            });
-          }
-        }
-      });
+          Object.entries(controlObj).forEach(([key, value]) => {
+            if (key === 'created_at' || key === 'id' || key === 'pharmacy_id') return;
+
+            // Verificar se o campo é uma chave de mês/trimestre válida
+            const mappingIndex = Object.keys(mapping).find(idx => mapping[parseInt(idx)] === key);
+
+            if (mappingIndex !== undefined && isControlPending(value as string)) {
+              let label = "";
+              if (controlType === "monthly") {
+                const monthName = monthNames[parseInt(mappingIndex)];
+                label = `${monthName} ${year}`;
+              } else {
+                // Para trimestral, identificamos os meses correspondentes
+                const quarter = parseInt(mappingIndex);
+                const monthsInQuarter = [
+                  [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
+                ];
+                // Adiciona uma pendência para cada mês do trimestre? 
+                // O código original fazia isso: "monthsInQuarter[quarter - 1].forEach..."
+                // Vamos manter a lógica original de explodir o trimestre em meses
+                monthsInQuarter[quarter - 1].forEach(monthIdx => {
+                  const monthName = monthNames[monthIdx];
+                  const monthLabel = `${monthName} ${year}`;
+
+                  if (!pendingData[monthLabel]) {
+                    pendingData[monthLabel] = {
+                      "Receitas A": [],
+                      "Receitas B2": [],
+                      "Trimestral": []
+                    };
+                  }
+
+                  pendingData[monthLabel]["Trimestral"].push({
+                    pharmacy,
+                    month: monthLabel,
+                    category: "Trimestral",
+                    type: "quarterly",
+                    quarter
+                  });
+                });
+                return; // Sai do loop atual pois já processamos o trimestre
+              }
+
+              if (label) {
+                if (!pendingData[label]) {
+                  pendingData[label] = {
+                    "Receitas A": [],
+                    "Receitas B2": [],
+                    "Trimestral": []
+                  };
+                }
+                pendingData[label][categoryName].push({
+                  pharmacy,
+                  month: label,
+                  category: categoryName,
+                  type: controlType
+                });
+              }
+            }
+          });
+        });
+      };
+
+      processControl(pharmacy.controlesMensaisA, "Receitas A", "monthly", monthPropertyMapping);
+      processControl(pharmacy.controlesMensaisB2, "Receitas B2", "monthly", monthPropertyMapping);
+      processControl(pharmacy.controlesTrimestrais, "Trimestral", "quarterly", quarterPropertyMapping);
     });
 
     return pendingData;
@@ -222,39 +230,51 @@ const Deadlines: React.FC = () => {
   }, [filteredData]);
 
   // Obter meses com pendências e ordenar
+  // Obter meses com pendências e ordenar
   const monthsWithPending = Object.keys(filteredData)
     .filter(month => {
       const monthData = filteredData[month];
       return Object.values(monthData).some(categoryData => categoryData.length > 0);
     })
     .sort((a, b) => {
-      const monthIndexA = monthNames.indexOf(a);
-      const monthIndexB = monthNames.indexOf(b);
-      
+      const [monthA, yearA] = a.split(' ');
+      const [monthB, yearB] = b.split(' ');
+
+      const indexA = monthNames.indexOf(monthA);
+      const indexB = monthNames.indexOf(monthB);
+      const yA = yearA ? parseInt(yearA) : currentYear;
+      const yB = yearB ? parseInt(yearB) : currentYear;
+
       if (sortOrder === "newest") {
-        // Mais recente primeiro (mês atual primeiro, depois em ordem decrescente)
-        if (monthIndexA === currentMonth) return -1;
-        if (monthIndexB === currentMonth) return 1;
-        return monthIndexB - monthIndexA;
+        if (yA !== yB) return yB - yA;
+        return indexB - indexA;
       } else {
-        // Mais antigo primeiro
-        return monthIndexA - monthIndexB;
+        if (yA !== yB) return yA - yB;
+        return indexA - indexB;
       }
     });
+
+  const isCurrentMonth = (label: string) => {
+    const now = new Date();
+    const currentM = monthNames[now.getMonth()];
+    const currentY = now.getFullYear();
+    return label === `${currentM} ${currentY}`;
+  };
+
 
   // Componente para gráfico de barras simples
   const SimpleBarChart = ({ data, type }: { data: { [key: string]: number }, type: "category" | "month" }) => {
     const maxValue = Math.max(...Object.values(data));
     const entries = Object.entries(data);
-    
+
     return (
       <div className="space-y-1">
         {entries.map(([key, value]) => (
           <div key={key} className="flex items-center gap-2 text-xs">
             <span className="w-24 truncate text-left text-xs">{key}</span>
             <div className="flex-1 bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-primary h-2 rounded-full" 
+              <div
+                className="bg-primary h-2 rounded-full"
                 style={{ width: `${(value / maxValue) * 100}%` }}
               />
             </div>
@@ -267,7 +287,7 @@ const Deadlines: React.FC = () => {
 
   return (
     <TooltipProvider>
-    <div className="space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
@@ -291,7 +311,7 @@ const Deadlines: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -304,7 +324,7 @@ const Deadlines: React.FC = () => {
             </CardContent>
           </Card>
 
-      <Card>
+          <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -323,8 +343,8 @@ const Deadlines: React.FC = () => {
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
               Distribuição de Pendências
-          </CardTitle>
-        </CardHeader>
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -334,21 +354,21 @@ const Deadlines: React.FC = () => {
                     <PieChart>
                       <Pie
                         data={[
-                          { 
-                            name: "Receitas A", 
-                            value: Object.values(filteredData).reduce((sum, monthData) => 
+                          {
+                            name: "Receitas A",
+                            value: Object.values(filteredData).reduce((sum, monthData) =>
                               sum + (monthData["Receitas A"]?.length || 0), 0),
                             fill: "#3B82F6"
                           },
-                          { 
-                            name: "Receitas B2", 
-                            value: Object.values(filteredData).reduce((sum, monthData) => 
+                          {
+                            name: "Receitas B2",
+                            value: Object.values(filteredData).reduce((sum, monthData) =>
                               sum + (monthData["Receitas B2"]?.length || 0), 0),
                             fill: "#1D4ED8"
                           },
-                          { 
-                            name: "Trimestral", 
-                            value: Object.values(filteredData).reduce((sum, monthData) => 
+                          {
+                            name: "Trimestral",
+                            value: Object.values(filteredData).reduce((sum, monthData) =>
                               sum + (monthData["Trimestral"]?.length || 0), 0),
                             fill: "#1E40AF"
                           }
@@ -363,12 +383,18 @@ const Deadlines: React.FC = () => {
                         fontSize={10}
                       >
                         {[
-                          { name: "Receitas A", value: Object.values(filteredData).reduce((sum, monthData) => 
-                            sum + (monthData["Receitas A"]?.length || 0), 0) },
-                          { name: "Receitas B2", value: Object.values(filteredData).reduce((sum, monthData) => 
-                            sum + (monthData["Receitas B2"]?.length || 0), 0) },
-                          { name: "Trimestral", value: Object.values(filteredData).reduce((sum, monthData) => 
-                            sum + (monthData["Trimestral"]?.length || 0), 0) }
+                          {
+                            name: "Receitas A", value: Object.values(filteredData).reduce((sum, monthData) =>
+                              sum + (monthData["Receitas A"]?.length || 0), 0)
+                          },
+                          {
+                            name: "Receitas B2", value: Object.values(filteredData).reduce((sum, monthData) =>
+                              sum + (monthData["Receitas B2"]?.length || 0), 0)
+                          },
+                          {
+                            name: "Trimestral", value: Object.values(filteredData).reduce((sum, monthData) =>
+                              sum + (monthData["Trimestral"]?.length || 0), 0)
+                          }
                         ].map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.name === "Receitas A" ? "#3B82F6" : entry.name === "Receitas B2" ? "#1D4ED8" : "#1E40AF"} />
                         ))}
@@ -382,9 +408,9 @@ const Deadlines: React.FC = () => {
                   </ResponsiveContainer>
                 </div>
               </div>
-                    <div>
+              <div>
                 <h4 className="font-medium mb-3">Por Mês</h4>
-                <SimpleBarChart 
+                <SimpleBarChart
                   data={monthsWithPending
                     .map(month => {
                       const monthData = filteredData[month];
@@ -395,8 +421,8 @@ const Deadlines: React.FC = () => {
                     .reduce((acc, { month, total }) => {
                       acc[`${month} ${currentYear}`] = total;
                       return acc;
-                    }, {} as { [key: string]: number })} 
-                  type="month" 
+                    }, {} as { [key: string]: number })}
+                  type="month"
                 />
               </div>
             </div>
@@ -426,7 +452,7 @@ const Deadlines: React.FC = () => {
                       <p>Alternar ordem de classificação por data</p>
                     </TooltipContent>
                   </Tooltip>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -435,10 +461,10 @@ const Deadlines: React.FC = () => {
                   >
                     <RotateCcw className="h-4 w-4" />
                     Limpar Filtros
-                        </Button>
-                    </div>
-                  </div>
-              
+                  </Button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -449,7 +475,7 @@ const Deadlines: React.FC = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                
+
                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filtrar por mês" />
@@ -486,10 +512,10 @@ const Deadlines: React.FC = () => {
                     <SelectItem value="category">Categoria</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
             </div>
-            </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
         {/* Visualização por Abas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -511,25 +537,25 @@ const Deadlines: React.FC = () => {
                 const monthTotal = Object.values(monthData).reduce((sum, categoryData) => sum + categoryData.length, 0);
                 const monthIndex = monthNames.indexOf(month);
                 const isExpanded = expandedMonths.has(month);
-                
+
                 // Dados para o gráfico de categorias
                 const categoryData = {
                   "Receitas A": monthData["Receitas A"]?.length || 0,
                   "Receitas B2": monthData["Receitas B2"]?.length || 0,
                   "Trimestral": monthData["Trimestral"]?.length || 0
                 };
-                
+
                 return (
                   <Collapsible key={month} open={isExpanded} onOpenChange={() => toggleMonthExpansion(month)}>
-      <Card>
+                    <Card>
                       <CollapsibleTrigger asChild>
                         <CardHeader className="border-b cursor-pointer hover:bg-muted/50 transition-colors">
                           <div className="flex items-center justify-between">
                             <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
+                              <Calendar className="h-5 w-5 text-primary" />
                               {month} {currentYear}
                               <Badge className="bg-orange-100 text-orange-800 border-orange-200">{monthTotal} pendências</Badge>
-          </CardTitle>
+                            </CardTitle>
                             <div className="flex items-center gap-2">
                               <Tooltip>
                                 <TooltipTrigger>
@@ -542,7 +568,7 @@ const Deadlines: React.FC = () => {
                                   <p>Status do mês: {month === monthNames[currentMonth] ? "Mês atual" : "Mês anterior"}</p>
                                 </TooltipContent>
                               </Tooltip>
-                              
+
                               <Tooltip>
                                 <TooltipTrigger>
                                   <Badge variant="outline" className="cursor-help">
@@ -557,7 +583,7 @@ const Deadlines: React.FC = () => {
                                   </div>
                                 </TooltipContent>
                               </Tooltip>
-                              
+
                               {isExpanded ? (
                                 <ChevronDown className="h-4 w-4" />
                               ) : (
@@ -565,14 +591,14 @@ const Deadlines: React.FC = () => {
                               )}
                             </div>
                           </div>
-        </CardHeader>
+                        </CardHeader>
                       </CollapsibleTrigger>
-                      
+
                       <CollapsibleContent>
-        <CardContent className="p-0">
+                        <CardContent className="p-0">
                           {Object.entries(monthData).map(([category, items]) => {
                             if (items.length === 0) return null;
-                            
+
                             return (
                               <div key={category} className="border-b last:border-b-0">
                                 <div className="p-4 bg-muted/30">
@@ -581,39 +607,39 @@ const Deadlines: React.FC = () => {
                                     <Badge variant="outline">{items.length} pendências</Badge>
                                   </div>
                                 </div>
-            <div className="divide-y">
+                                <div className="divide-y">
                                   {items.map((item, index) => (
                                     <div key={`${item.pharmacy.id}-${category}-${index}`} className="p-4">
-                  <div className="flex flex-wrap justify-between items-center gap-4">
+                                      <div className="flex flex-wrap justify-between items-center gap-4">
                                         <div className="flex-1 min-w-0">
-                      <Link
+                                          <Link
                                             to={`/farmacias/${item.pharmacy.id}`}
                                             className="text-lg font-medium hover:text-primary block"
-                      >
+                                          >
                                             {item.pharmacy.nomeFantasia || item.pharmacy.razaoSocial}
-                      </Link>
+                                          </Link>
                                           <div className="text-sm text-muted-foreground mt-1">
                                             CNPJ: {item.pharmacy.cnpj}
-                      </div>
+                                          </div>
                                           <div className="mt-2">
                                             <Badge variant="destructive" className="text-xs">
                                               <AlertTriangle className="mr-1 h-3 w-3" />
                                               Pendente: {category} - {month}
                                             </Badge>
-                      </div>
-                    </div>
-                    <div>
+                                          </div>
+                                        </div>
+                                        <div>
                                           <Link to={`/farmacias/${item.pharmacy.id}/editar`}>
-                        <Button size="sm" variant="outline">
-                          <Edit className="mr-2 h-4 w-4" />
-                          Registrar
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                                            <Button size="sm" variant="outline">
+                                              <Edit className="mr-2 h-4 w-4" />
+                                              Registrar
+                                            </Button>
+                                          </Link>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             );
                           })}
@@ -628,14 +654,14 @@ const Deadlines: React.FC = () => {
                 <CardContent className="p-8 text-center">
                   <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">Nenhuma pendência encontrada</h3>
-              <p className="text-muted-foreground">
-                    {searchTerm || selectedMonth !== "all" || selectedCategory !== "all" 
+                  <p className="text-muted-foreground">
+                    {searchTerm || selectedMonth !== "all" || selectedCategory !== "all"
                       ? "Tente ajustar os filtros para ver mais resultados."
                       : "Todas as farmácias estão em dia com seus controles!"
                     }
-              </p>
-        </CardContent>
-      </Card>
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
@@ -651,7 +677,7 @@ const Deadlines: React.FC = () => {
               if (categoryItems.length === 0) return null;
 
               const isExpanded = expandedCategories.has(category);
-              
+
               // Dados para o gráfico de meses
               const monthData = categoryItems.reduce((acc, item) => {
                 acc[item.month] = (acc[item.month] || 0) + 1;
@@ -660,15 +686,15 @@ const Deadlines: React.FC = () => {
 
               return (
                 <Collapsible key={category} open={isExpanded} onOpenChange={() => toggleCategoryExpansion(category)}>
-      <Card>
+                  <Card>
                     <CollapsibleTrigger asChild>
                       <CardHeader className="border-b cursor-pointer hover:bg-muted/50 transition-colors">
                         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
+                          <CardTitle className="flex items-center gap-2">
+                            <Calendar className="h-5 w-5 text-primary" />
                             {category}
                             <Badge className="bg-orange-100 text-orange-800 border-orange-200">{categoryItems.length} pendências</Badge>
-          </CardTitle>
+                          </CardTitle>
                           <div className="flex items-center gap-2">
                             <Tooltip>
                               <TooltipTrigger>
@@ -684,7 +710,7 @@ const Deadlines: React.FC = () => {
                                 </div>
                               </TooltipContent>
                             </Tooltip>
-                            
+
                             {isExpanded ? (
                               <ChevronDown className="h-4 w-4" />
                             ) : (
@@ -692,25 +718,25 @@ const Deadlines: React.FC = () => {
                             )}
                           </div>
                         </div>
-        </CardHeader>
+                      </CardHeader>
                     </CollapsibleTrigger>
-                    
+
                     <CollapsibleContent>
-        <CardContent className="p-0">
-            <div className="divide-y">
+                      <CardContent className="p-0">
+                        <div className="divide-y">
                           {categoryItems.map((item, index) => (
                             <div key={`${item.pharmacy.id}-${category}-${index}`} className="p-4">
-                  <div className="flex flex-wrap justify-between items-center gap-4">
+                              <div className="flex flex-wrap justify-between items-center gap-4">
                                 <div className="flex-1 min-w-0">
-                      <Link
+                                  <Link
                                     to={`/farmacias/${item.pharmacy.id}`}
                                     className="text-lg font-medium hover:text-primary block"
-                      >
+                                  >
                                     {item.pharmacy.nomeFantasia || item.pharmacy.razaoSocial}
-                      </Link>
+                                  </Link>
                                   <div className="text-sm text-muted-foreground mt-1">
                                     CNPJ: {item.pharmacy.cnpj}
-                      </div>
+                                  </div>
                                   <div className="mt-2 flex items-center gap-2">
                                     <Badge variant="destructive" className="text-xs">
                                       <AlertTriangle className="mr-1 h-3 w-3" />
@@ -719,29 +745,29 @@ const Deadlines: React.FC = () => {
                                     <Badge variant="outline" className="text-xs">
                                       {item.month}
                                     </Badge>
-                      </div>
-                    </div>
-                    <div>
+                                  </div>
+                                </div>
+                                <div>
                                   <Link to={`/farmacias/${item.pharmacy.id}/editar`}>
-                        <Button size="sm" variant="outline">
-                          <Edit className="mr-2 h-4 w-4" />
-                          Registrar
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-        </CardContent>
+                                    <Button size="sm" variant="outline">
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Registrar
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
                     </CollapsibleContent>
-      </Card>
+                  </Card>
                 </Collapsible>
               );
             })}
           </TabsContent>
         </Tabs>
-    </div>
+      </div>
     </TooltipProvider>
   );
 };

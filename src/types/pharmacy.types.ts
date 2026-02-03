@@ -51,9 +51,9 @@ export interface Pharmacy {
   alvara?: string; // Campo opcional para o alvará
   email: string;
   responsaveisTecnicos: TechnicalSupervisor[];
-  controlesMensaisA: MonthlyControl;
-  controlesMensaisB2: MonthlyControl;
-  controlesTrimestrais: QuarterlyControl;
+  controlesMensaisA: MonthlyControl[];
+  controlesMensaisB2: MonthlyControl[];
+  controlesTrimestrais: QuarterlyControl[];
   observacoes: string;
   dataCadastro: string;
   ultimaAtualizacao: string;
