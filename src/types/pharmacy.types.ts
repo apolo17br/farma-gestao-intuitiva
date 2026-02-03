@@ -4,6 +4,8 @@ export interface TechnicalSupervisor {
 }
 
 export interface MonthlyControl {
+  id?: string;
+  created_at?: string;
   janeiro: string;
   fevereiro: string;
   marco: string;
@@ -19,6 +21,8 @@ export interface MonthlyControl {
 }
 
 export interface QuarterlyControl {
+  id?: string;
+  created_at?: string;
   primeiro: string;
   segundo: string;
   terceiro: string;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { usePharmacy } from "../context/PharmacyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, AlertCircle, Calendar, History, X } from "lucide-react";
+import { Users, AlertCircle, Calendar, History, X, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Dashboard: React.FC = () => {
-  const { pharmacies, loading } = usePharmacy();
+  const { pharmacies, loading, selectedYear, setSelectedYear } = usePharmacy();
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   // Dados para os indicadores
@@ -63,7 +63,7 @@ const Dashboard: React.FC = () => {
       "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
       "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ];
-    
+
     for (let month = 0; month < 12; month++) {
       const monthName = monthNames[month];
       pendingData[monthName] = {
@@ -176,9 +176,9 @@ const Dashboard: React.FC = () => {
       if (!pharmacy.telefone || pharmacy.telefone.trim() === "") missingTelefone++;
       if (!pharmacy.email || pharmacy.email.trim() === "") missingEmail++;
       if (!pharmacy.alvara || pharmacy.alvara.trim() === "") missingAlvara++;
-      if (!pharmacy.address || 
-          (!pharmacy.address.logradouro && !pharmacy.address.bairro && 
-           !pharmacy.address.cidade && !pharmacy.address.estado)) missingEndereco++;
+      if (!pharmacy.address ||
+        (!pharmacy.address.logradouro && !pharmacy.address.bairro &&
+          !pharmacy.address.cidade && !pharmacy.address.estado)) missingEndereco++;
     });
 
     return { missingTelefone, missingEmail, missingAlvara, missingEndereco };
@@ -187,8 +187,8 @@ const Dashboard: React.FC = () => {
   // Agrupar farmácias por mês de cadastro
   const groupByMonth = () => {
     const months = [
-      "Jan", "Fev", "Mar", "Abr", 
-      "Mai", "Jun", "Jul", "Ago", 
+      "Jan", "Fev", "Mar", "Abr",
+      "Mai", "Jun", "Jul", "Ago",
       "Set", "Out", "Nov", "Dez"
     ];
 
@@ -249,7 +249,18 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex items-center gap-2 bg-card border rounded-md p-1 shadow-sm">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear - 1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="font-semibold min-w-[3rem] text-center">{selectedYear}</span>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear + 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -306,8 +317,8 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <p className="text-4xl font-bold">
-              {missingFields.missingTelefone + missingFields.missingEmail + 
-               missingFields.missingAlvara + missingFields.missingEndereco}
+              {missingFields.missingTelefone + missingFields.missingEmail +
+                missingFields.missingAlvara + missingFields.missingEndereco}
             </p>
             <p className="text-sm text-muted-foreground mt-2">
               Informações em branco
@@ -391,7 +402,7 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="h-80 p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
+              <BarChart
                 data={[
                   { name: "Telefone", value: missingFields.missingTelefone },
                   { name: "E-mail", value: missingFields.missingEmail },
@@ -400,13 +411,13 @@ const Dashboard: React.FC = () => {
                 ]}
                 margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
               >
-                <XAxis 
-                  dataKey="name" 
+                <XAxis
+                  dataKey="name"
                   fontSize={12}
                   tick={{ fontSize: 11 }}
                 />
-                <YAxis 
-                  allowDecimals={false} 
+                <YAxis
+                  allowDecimals={false}
                   fontSize={12}
                   tick={{ fontSize: 11 }}
                 />
@@ -428,9 +439,9 @@ const Dashboard: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Farmácias Recentemente Atualizadas</CardTitle>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowHistoryModal(true)}
               className="flex items-center gap-1"
             >
@@ -580,15 +591,15 @@ const Dashboard: React.FC = () => {
                       )}
                     </span>
                     <span className="text-xs text-muted-foreground block">
-                      {pharmacy.ultimaAtualizacao ? 
-                        format(new Date(pharmacy.ultimaAtualizacao), "dd/MM/yyyy HH:mm") : 
+                      {pharmacy.ultimaAtualizacao ?
+                        format(new Date(pharmacy.ultimaAtualizacao), "dd/MM/yyyy HH:mm") :
                         "Nunca atualizado"
                       }
                     </span>
                   </div>
                 </div>
               ))}
-              
+
               {allPharmaciesHistory.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   Nenhuma farmácia cadastrada no sistema.

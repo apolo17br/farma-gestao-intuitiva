@@ -75,7 +75,7 @@ interface PharmacyFormProps {
 const ensureString = (value: string | null | undefined): string => value ?? "";
 
 // Função auxiliar para garantir que o array de supervisores não seja null/undefined
-const ensureSupervisors = (supervisors: TechnicalSupervisor[] | null | undefined): TechnicalSupervisor[] => 
+const ensureSupervisors = (supervisors: TechnicalSupervisor[] | null | undefined): TechnicalSupervisor[] =>
   supervisors && supervisors.length > 0 ? supervisors.map(s => ({ nome: ensureString(s.nome), crf: ensureString(s.crf) })) : [{ nome: "", crf: "" }];
 
 // Função auxiliar para garantir que os controles mensais não sejam null/undefined
@@ -143,7 +143,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     }
   });
 
-  const { addPharmacy, updatePharmacy } = usePharmacy();
+  const { addPharmacy, updatePharmacy, selectedYear } = usePharmacy();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -255,7 +255,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Preparar dados para enviar (incluindo address)
     const dataToSend = { ...formData };
 
@@ -297,7 +297,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     <form onSubmit={handleSubmit} className="space-y-8">
       <Card>
         <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Dados da Farmácia</h3>
+          <h3 className="text-lg font-semibold mb-4">Dados da Farmácia ({selectedYear})</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="cnpj">
@@ -560,7 +560,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
                 <Checkbox
                   id={`monthly-a-${month.key}`}
                   checked={!!formData.controlesMensaisA[month.key]}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     handleMonthlyControlChange('A', month.key, checked as boolean)
                   }
                 />
@@ -587,7 +587,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
                 <Checkbox
                   id={`monthly-b2-${month.key}`}
                   checked={!!formData.controlesMensaisB2[month.key]}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     handleMonthlyControlChange('B2', month.key, checked as boolean)
                   }
                 />
@@ -612,7 +612,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
                 <Checkbox
                   id={`quarterly-${quarter.key}`}
                   checked={!!formData.controlesTrimestrais[quarter.key]}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     handleQuarterlyControlChange(quarter.key, checked as boolean)
                   }
                 />
@@ -648,9 +648,9 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
       </Card>
 
       <div className="flex justify-end gap-4">
-        <Button 
-          type="button" 
-          variant="outline" 
+        <Button
+          type="button"
+          variant="outline"
           onClick={() => navigate(-1)}
         >
           Cancelar

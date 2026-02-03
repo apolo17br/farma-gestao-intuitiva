@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit, Trash2, ArrowLeft, Check, MapPin } from "lucide-react";
+import { Edit, Trash2, ArrowLeft, Check, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -24,7 +24,7 @@ import { Pharmacy, TechnicalSupervisor } from "../types/pharmacy.types";
 const PharmacyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPharmacy, deletePharmacy, loading } = usePharmacy();
+  const { getPharmacy, deletePharmacy, loading, selectedYear, setSelectedYear } = usePharmacy();
   const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
 
   useEffect(() => {
@@ -89,6 +89,16 @@ const PharmacyDetail: React.FC = () => {
           <h1 className="text-3xl font-bold">Detalhes da Farmácia</h1>
         </div>
         <div className="flex gap-2">
+          <div className="flex items-center gap-2 mr-2 bg-card border rounded-md p-1 shadow-sm">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="font-semibold min-w-[3rem] text-center">{selectedYear}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
           <Link to={`/farmacias/${pharmacy.id}/editar`}>
             <Button variant="outline" className="w-full sm:w-auto">
               <Edit className="mr-2 h-4 w-4" /> Editar
@@ -97,8 +107,8 @@ const PharmacyDetail: React.FC = () => {
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="text-destructive border-destructive hover:bg-destructive/10 w-full sm:w-auto"
               >
                 <Trash2 className="mr-2 h-4 w-4" /> Excluir
@@ -159,7 +169,7 @@ const PharmacyDetail: React.FC = () => {
               </div>
 
               <Separator />
-              
+
               <div>
                 <h3 className="text-lg font-semibold mb-3 flex items-center">
                   <MapPin className="mr-2 h-5 w-5 text-muted-foreground" /> Endereço
@@ -188,7 +198,7 @@ const PharmacyDetail: React.FC = () => {
               </div>
 
               <Separator />
-              
+
               <div>
                 <h3 className="text-lg font-semibold mb-3">Responsáveis Técnicos</h3>
                 {pharmacy.responsaveisTecnicos && pharmacy.responsaveisTecnicos.length > 0 ? (
@@ -217,7 +227,7 @@ const PharmacyDetail: React.FC = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Data de Cadastro</p>
                     <p className="font-medium">
-                      {pharmacy.dataCadastro 
+                      {pharmacy.dataCadastro
                         ? format(new Date(pharmacy.dataCadastro), "PPP", { locale: ptBR })
                         : "Data não informada"}
                     </p>
@@ -245,11 +255,10 @@ const PharmacyDetail: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {months.map((month) => (
                   <div key={month.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${
-                      pharmacy.controlesMensaisA[month.key as keyof typeof pharmacy.controlesMensaisA] 
-                        ? 'bg-primary border-primary' 
+                    <div className={`h-4 w-4 rounded-sm border ${pharmacy.controlesMensaisA[month.key as keyof typeof pharmacy.controlesMensaisA]
+                        ? 'bg-primary border-primary'
                         : 'border-gray-300'
-                    }`}>
+                      }`}>
                       {pharmacy.controlesMensaisA[month.key as keyof typeof pharmacy.controlesMensaisA] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
@@ -269,11 +278,10 @@ const PharmacyDetail: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {months.map((month) => (
                   <div key={month.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${
-                      pharmacy.controlesMensaisB2[month.key as keyof typeof pharmacy.controlesMensaisB2] 
-                        ? 'bg-primary border-primary' 
+                    <div className={`h-4 w-4 rounded-sm border ${pharmacy.controlesMensaisB2[month.key as keyof typeof pharmacy.controlesMensaisB2]
+                        ? 'bg-primary border-primary'
                         : 'border-gray-300'
-                    }`}>
+                      }`}>
                       {pharmacy.controlesMensaisB2[month.key as keyof typeof pharmacy.controlesMensaisB2] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
@@ -293,11 +301,10 @@ const PharmacyDetail: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 {quarters.map((quarter) => (
                   <div key={quarter.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${
-                      pharmacy.controlesTrimestrais[quarter.key as keyof typeof pharmacy.controlesTrimestrais] 
-                        ? 'bg-primary border-primary' 
+                    <div className={`h-4 w-4 rounded-sm border ${pharmacy.controlesTrimestrais[quarter.key as keyof typeof pharmacy.controlesTrimestrais]
+                        ? 'bg-primary border-primary'
                         : 'border-gray-300'
-                    }`}>
+                      }`}>
                       {pharmacy.controlesTrimestrais[quarter.key as keyof typeof pharmacy.controlesTrimestrais] && (
                         <Check className="h-4 w-4 text-primary-foreground" />
                       )}
