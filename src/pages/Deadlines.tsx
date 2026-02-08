@@ -90,90 +90,119 @@ const Deadlines: React.FC = () => {
     setSortOrder(prev => prev === "newest" ? "oldest" : "newest");
   };
 
-  // Processar todas as pendências por mês e categoria (considerando ano)
+  // Processar todas as pendências por mês/ano e categoria
   const allPendingData = useMemo(() => {
-    const pendingData: { [monthKey: string]: { [category: string]: any[] } } = {};
+    // Estrutura agora usa chave no formato "Mês/Ano" para identificar cada período único
+    const pendingData: { [monthYear: string]: { [category: string]: any[] } } = {};
+
+    // Função para criar a chave mês/ano
+    const getMonthYearKey = (monthIndex: number, year: number) => {
+      return `${monthNames[monthIndex]}/${year}`;
+    };
+
+    // Função para inicializar a estrutura de um mês/ano se não existir
+    const ensureMonthYearExists = (key: string) => {
+      if (!pendingData[key]) {
+        pendingData[key] = {
+          "Receitas A": [],
+          "Receitas B2": [],
+          "Trimestral": []
+        };
+      }
+    };
 
     pharmacies.forEach(pharmacy => {
-      // Helper param iterar meses de um controle
-      const processControl = (
-        controls: any[],
-        categoryName: string,
-        controlType: "monthly" | "quarterly",
-        mapping: { [key: number]: string }
-      ) => {
-        if (!controls || !Array.isArray(controls)) return;
-
-        controls.forEach(controlObj => {
-          if (!controlObj.created_at) return;
-          const year = new Date(controlObj.created_at).getFullYear();
-
-          Object.entries(controlObj).forEach(([key, value]) => {
-            if (key === 'created_at' || key === 'id' || key === 'pharmacy_id') return;
-
-            // Verificar se o campo é uma chave de mês/trimestre válida
-            const mappingIndex = Object.keys(mapping).find(idx => mapping[parseInt(idx)] === key);
-
-            if (mappingIndex !== undefined && isControlPending(value as string)) {
-              let label = "";
-              if (controlType === "monthly") {
-                const monthName = monthNames[parseInt(mappingIndex)];
-                label = `${monthName} ${year}`;
-              } else {
-                // Para trimestral, identificamos os meses correspondentes
-                const quarter = parseInt(mappingIndex);
-                const monthsInQuarter = [
-                  [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
-                ];
-                // Adiciona uma pendência para cada mês do trimestre? 
-                // O código original fazia isso: "monthsInQuarter[quarter - 1].forEach..."
-                // Vamos manter a lógica original de explodir o trimestre em meses
-                monthsInQuarter[quarter - 1].forEach(monthIdx => {
-                  const monthName = monthNames[monthIdx];
-                  const monthLabel = `${monthName} ${year}`;
-
-                  if (!pendingData[monthLabel]) {
-                    pendingData[monthLabel] = {
-                      "Receitas A": [],
-                      "Receitas B2": [],
-                      "Trimestral": []
-                    };
-                  }
-
-                  pendingData[monthLabel]["Trimestral"].push({
-                    pharmacy,
-                    month: monthLabel,
-                    category: "Trimestral",
-                    type: "quarterly",
-                    quarter
-                  });
-                });
-                return; // Sai do loop atual pois já processamos o trimestre
-              }
-
-              if (label) {
-                if (!pendingData[label]) {
-                  pendingData[label] = {
-                    "Receitas A": [],
-                    "Receitas B2": [],
-                    "Trimestral": []
-                  };
-                }
-                pendingData[label][categoryName].push({
+      // Processar controles mensais A (agora é um array por ano)
+      if (Array.isArray(pharmacy.controlesMensaisA)) {
+        pharmacy.controlesMensaisA.forEach(yearControl => {
+          const year = yearControl.year;
+          Object.entries(yearControl).forEach(([monthKey, control]) => {
+            if (monthKey === 'id' || monthKey === 'pharmacy_id' || monthKey === 'year' || monthKey === 'created_at') return;
+            if (isControlPending(control as string)) {
+              const monthIndex = Object.keys(monthPropertyMapping).find(
+                key => monthPropertyMapping[parseInt(key)] === monthKey
+              );
+              if (monthIndex !== undefined) {
+                const monthYearKey = getMonthYearKey(parseInt(monthIndex), year);
+                ensureMonthYearExists(monthYearKey);
+                pendingData[monthYearKey]["Receitas A"].push({
                   pharmacy,
-                  month: label,
-                  category: categoryName,
-                  type: controlType
+                  month: monthNames[parseInt(monthIndex)],
+                  monthIndex: parseInt(monthIndex),
+                  year,
+                  monthYearKey,
+                  category: "Receitas A",
+                  type: "monthly"
                 });
               }
             }
           });
         });
-      };
+      }
 
-      processControl(pharmacy.controlesMensaisA, "Receitas A", "monthly", monthPropertyMapping);
-      processControl(pharmacy.controlesMensaisB2, "Receitas B2", "monthly", monthPropertyMapping);
-      processControl(pharmacy.controlesTrimestrais, "Trimestral", "quarterly", quarterPropertyMapping);
+      // Processar controles mensais B2 (agora é um array por ano)
+      if (Array.isArray(pharmacy.controlesMensaisB2)) {
+        pharmacy.controlesMensaisB2.forEach(yearControl => {
+          const year = yearControl.year;
+          Object.entries(yearControl).forEach(([monthKey, control]) => {
+            if (monthKey === 'id' || monthKey === 'pharmacy_id' || monthKey === 'year' || monthKey === 'created_at') return;
+            if (isControlPending(control as string)) {
+              const monthIndex = Object.keys(monthPropertyMapping).find(
+                key => monthPropertyMapping[parseInt(key)] === monthKey
+              );
+              if (monthIndex !== undefined) {
+                const monthYearKey = getMonthYearKey(parseInt(monthIndex), year);
+                ensureMonthYearExists(monthYearKey);
+                pendingData[monthYearKey]["Receitas B2"].push({
+                  pharmacy,
+                  month: monthNames[parseInt(monthIndex)],
+                  monthIndex: parseInt(monthIndex),
+                  year,
+                  monthYearKey,
+                  category: "Receitas B2",
+                  type: "monthly"
+                });
+              }
+            }
+          });
+        });
+      }
+
+      // Processar controles trimestrais (agora é um array por ano)
+      if (Array.isArray(pharmacy.controlesTrimestrais)) {
+        pharmacy.controlesTrimestrais.forEach(yearControl => {
+          const year = yearControl.year;
+          Object.entries(yearControl).forEach(([quarterKey, control]) => {
+            if (quarterKey === 'id' || quarterKey === 'pharmacy_id' || quarterKey === 'year' || quarterKey === 'created_at') return;
+            if (isControlPending(control as string)) {
+              const quarterNumber = Object.keys(quarterPropertyMapping).find(
+                key => quarterPropertyMapping[parseInt(key)] === quarterKey
+              );
+              if (quarterNumber !== undefined) {
+                const quarter = parseInt(quarterNumber);
+                // Mapear trimestre para meses
+                const monthsInQuarter = [
+                  [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
+                ];
+                monthsInQuarter[quarter - 1].forEach(monthIndex => {
+                  const monthYearKey = getMonthYearKey(monthIndex, year);
+                  ensureMonthYearExists(monthYearKey);
+                  pendingData[monthYearKey]["Trimestral"].push({
+                    pharmacy,
+                    month: monthNames[monthIndex],
+                    monthIndex,
+                    year,
+                    monthYearKey,
+                    category: "Trimestral",
+                    type: "quarterly",
+                    quarter
+                  });
+                });
+              }
+            }
+          });
+        });
+      }
     });
 
     return pendingData;
@@ -181,21 +210,26 @@ const Deadlines: React.FC = () => {
 
   // Filtrar dados baseado nos filtros selecionados
   const filteredData = useMemo(() => {
-    let filtered = allPendingData;
+    let filtered = { ...allPendingData };
 
-    // Filtrar por mês
+    // Filtrar por mês (agora precisa verificar se a chave contém o mês selecionado)
     if (selectedMonth !== "all") {
-      const filteredByMonth: { [month: string]: { [category: string]: any[] } } = {};
-      filteredByMonth[selectedMonth] = filtered[selectedMonth] || { "Receitas A": [], "Receitas B2": [], "Trimestral": [] };
+      const filteredByMonth: { [monthYear: string]: { [category: string]: any[] } } = {};
+      Object.keys(filtered).forEach(key => {
+        // A chave agora está no formato "Mês/Ano", ex: "Janeiro/2025"
+        if (key.startsWith(selectedMonth + "/")) {
+          filteredByMonth[key] = filtered[key];
+        }
+      });
       filtered = filteredByMonth;
     }
 
     // Filtrar por categoria
     if (selectedCategory !== "all") {
-      Object.keys(filtered).forEach(month => {
-        Object.keys(filtered[month]).forEach(category => {
+      Object.keys(filtered).forEach(monthYear => {
+        Object.keys(filtered[monthYear]).forEach(category => {
           if (category !== selectedCategory) {
-            filtered[month][category] = [];
+            filtered[monthYear][category] = [];
           }
         });
       });
@@ -204,9 +238,9 @@ const Deadlines: React.FC = () => {
     // Aplicar busca por texto
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase();
-      Object.keys(filtered).forEach(month => {
-        Object.keys(filtered[month]).forEach(category => {
-          filtered[month][category] = filtered[month][category].filter(item =>
+      Object.keys(filtered).forEach(monthYear => {
+        Object.keys(filtered[monthYear]).forEach(category => {
+          filtered[monthYear][category] = filtered[monthYear][category].filter((item: any) =>
             item.pharmacy.nomeFantasia?.toLowerCase().includes(searchLower) ||
             item.pharmacy.razaoSocial?.toLowerCase().includes(searchLower) ||
             item.pharmacy.cnpj?.includes(searchTerm)
@@ -222,45 +256,44 @@ const Deadlines: React.FC = () => {
   const totalPending = useMemo(() => {
     let total = 0;
     Object.values(filteredData).forEach(monthData => {
-      Object.values(monthData).forEach(categoryData => {
+      Object.values(monthData).forEach((categoryData: any[]) => {
         total += categoryData.length;
       });
     });
     return total;
   }, [filteredData]);
 
-  // Obter meses com pendências e ordenar
-  // Obter meses com pendências e ordenar
-  const monthsWithPending = Object.keys(filteredData)
-    .filter(month => {
-      const monthData = filteredData[month];
-      return Object.values(monthData).some(categoryData => categoryData.length > 0);
-    })
-    .sort((a, b) => {
-      const [monthA, yearA] = a.split(' ');
-      const [monthB, yearB] = b.split(' ');
-
-      const indexA = monthNames.indexOf(monthA);
-      const indexB = monthNames.indexOf(monthB);
-      const yA = yearA ? parseInt(yearA) : currentYear;
-      const yB = yearB ? parseInt(yearB) : currentYear;
-
-      if (sortOrder === "newest") {
-        if (yA !== yB) return yB - yA;
-        return indexB - indexA;
-      } else {
-        if (yA !== yB) return yA - yB;
-        return indexA - indexB;
-      }
-    });
-
-  const isCurrentMonth = (label: string) => {
-    const now = new Date();
-    const currentM = monthNames[now.getMonth()];
-    const currentY = now.getFullYear();
-    return label === `${currentM} ${currentY}`;
+  // Função para extrair mês e ano de uma chave "Mês/Ano"
+  const parseMonthYearKey = (key: string): { monthIndex: number; year: number } => {
+    const parts = key.split('/');
+    const monthName = parts[0];
+    const year = parseInt(parts[1]) || currentYear;
+    const monthIndex = monthNames.indexOf(monthName);
+    return { monthIndex, year };
   };
 
+  // Obter meses/anos com pendências e ordenar cronologicamente
+  const monthsWithPending = Object.keys(filteredData)
+    .filter(monthYear => {
+      const monthData = filteredData[monthYear];
+      return Object.values(monthData).some((categoryData: any[]) => categoryData.length > 0);
+    })
+    .sort((a, b) => {
+      const { monthIndex: monthA, year: yearA } = parseMonthYearKey(a);
+      const { monthIndex: monthB, year: yearB } = parseMonthYearKey(b);
+
+      // Criar uma representação numérica para ordenação cronológica: ano * 12 + mês
+      const valueA = yearA * 12 + monthA;
+      const valueB = yearB * 12 + monthB;
+
+      if (sortOrder === "newest") {
+        // Mais recente primeiro (ordem decrescente)
+        return valueB - valueA;
+      } else {
+        // Mais antigo primeiro (ordem crescente)
+        return valueA - valueB;
+      }
+    });
 
   // Componente para gráfico de barras simples
   const SimpleBarChart = ({ data, type }: { data: { [key: string]: number }, type: "category" | "month" }) => {
@@ -409,17 +442,17 @@ const Deadlines: React.FC = () => {
                 </div>
               </div>
               <div>
-                <h4 className="font-medium mb-3">Por Mês</h4>
+                <h4 className="font-medium mb-3">Por Mês/Ano</h4>
                 <SimpleBarChart
                   data={monthsWithPending
-                    .map(month => {
-                      const monthData = filteredData[month];
-                      const total = Object.values(monthData).reduce((sum, categoryData) => sum + categoryData.length, 0);
-                      return { month, total };
+                    .map(monthYear => {
+                      const monthData = filteredData[monthYear];
+                      const total = Object.values(monthData).reduce((sum, categoryData: any[]) => sum + categoryData.length, 0);
+                      return { monthYear, total };
                     })
                     .sort((a, b) => b.total - a.total) // Ordenar por quantidade (maior para menor)
-                    .reduce((acc, { month, total }) => {
-                      acc[`${month} ${currentYear}`] = total;
+                    .reduce((acc, { monthYear, total }) => {
+                      acc[monthYear] = total;
                       return acc;
                     }, {} as { [key: string]: number })}
                   type="month"
@@ -532,11 +565,12 @@ const Deadlines: React.FC = () => {
 
           <TabsContent value="monthly" className="space-y-4">
             {monthsWithPending.length > 0 ? (
-              monthsWithPending.map(month => {
-                const monthData = filteredData[month];
-                const monthTotal = Object.values(monthData).reduce((sum, categoryData) => sum + categoryData.length, 0);
-                const monthIndex = monthNames.indexOf(month);
-                const isExpanded = expandedMonths.has(month);
+              monthsWithPending.map(monthYear => {
+                const monthData = filteredData[monthYear];
+                const monthTotal = Object.values(monthData).reduce((sum, categoryData: any[]) => sum + categoryData.length, 0);
+                const { monthIndex, year } = parseMonthYearKey(monthYear);
+                const isExpanded = expandedMonths.has(monthYear);
+                const isCurrentMonthYear = monthIndex === currentMonth && year === currentYear;
 
                 // Dados para o gráfico de categorias
                 const categoryData = {
@@ -546,14 +580,14 @@ const Deadlines: React.FC = () => {
                 };
 
                 return (
-                  <Collapsible key={month} open={isExpanded} onOpenChange={() => toggleMonthExpansion(month)}>
+                  <Collapsible key={monthYear} open={isExpanded} onOpenChange={() => toggleMonthExpansion(monthYear)}>
                     <Card>
                       <CollapsibleTrigger asChild>
                         <CardHeader className="border-b cursor-pointer hover:bg-muted/50 transition-colors">
                           <div className="flex items-center justify-between">
                             <CardTitle className="flex items-center gap-2">
                               <Calendar className="h-5 w-5 text-primary" />
-                              {month} {currentYear}
+                              {monthYear}
                               <Badge className="bg-orange-100 text-orange-800 border-orange-200">{monthTotal} pendências</Badge>
                             </CardTitle>
                             <div className="flex items-center gap-2">
@@ -561,11 +595,11 @@ const Deadlines: React.FC = () => {
                                 <TooltipTrigger>
                                   <Badge variant="outline" className="cursor-help">
                                     <Clock className="mr-1 h-3 w-3" />
-                                    {month === monthNames[currentMonth] ? "Mês atual" : "Mês anterior"}
+                                    {isCurrentMonthYear ? "Mês atual" : year < currentYear || (year === currentYear && monthIndex < currentMonth) ? "Mês anterior" : "Mês futuro"}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Status do mês: {month === monthNames[currentMonth] ? "Mês atual" : "Mês anterior"}</p>
+                                  <p>Status: {isCurrentMonthYear ? "Mês atual" : year < currentYear || (year === currentYear && monthIndex < currentMonth) ? "Mês anterior" : "Mês futuro"}</p>
                                 </TooltipContent>
                               </Tooltip>
 
@@ -624,7 +658,7 @@ const Deadlines: React.FC = () => {
                                           <div className="mt-2">
                                             <Badge variant="destructive" className="text-xs">
                                               <AlertTriangle className="mr-1 h-3 w-3" />
-                                              Pendente: {category} - {month}
+                                              Pendente: {category} - {monthYear}
                                             </Badge>
                                           </div>
                                         </div>

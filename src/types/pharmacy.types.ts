@@ -4,8 +4,6 @@ export interface TechnicalSupervisor {
 }
 
 export interface MonthlyControl {
-  id?: string;
-  created_at?: string;
   janeiro: string;
   fevereiro: string;
   marco: string;
@@ -20,13 +18,27 @@ export interface MonthlyControl {
   dezembro: string;
 }
 
-export interface QuarterlyControl {
+// Interface para controles mensais com informação de ano
+export interface YearlyMonthlyControl extends MonthlyControl {
   id?: string;
+  pharmacy_id?: string;
+  year: number; // Ano extraído do created_at
   created_at?: string;
+}
+
+export interface QuarterlyControl {
   primeiro: string;
   segundo: string;
   terceiro: string;
   quarto: string;
+}
+
+// Interface para controles trimestrais com informação de ano
+export interface YearlyQuarterlyControl extends QuarterlyControl {
+  id?: string;
+  pharmacy_id?: string;
+  year: number; // Ano extraído do created_at
+  created_at?: string;
 }
 
 // Nova interface para o Endereço
@@ -51,11 +63,21 @@ export interface Pharmacy {
   alvara?: string; // Campo opcional para o alvará
   email: string;
   responsaveisTecnicos: TechnicalSupervisor[];
-  controlesMensaisA: MonthlyControl[];
-  controlesMensaisB2: MonthlyControl[];
-  controlesTrimestrais: QuarterlyControl[];
+  // Controles mensais agora são arrays para suportar múltiplos anos
+  controlesMensaisA: YearlyMonthlyControl[];
+  controlesMensaisB2: YearlyMonthlyControl[];
+  controlesTrimestrais: YearlyQuarterlyControl[];
   observacoes: string;
   dataCadastro: string;
   ultimaAtualizacao: string;
   address?: Address | null; // Adiciona o campo de endereço opcional
+}
+
+// Tipo auxiliar para representar um mês/ano específico
+export interface MonthYearEntry {
+  month: number; // 0-11
+  year: number;
+  monthName: string;
+  monthKey: string; // janeiro, fevereiro, etc.
+  label: string; // "Jan/25", "Fev/25", etc.
 }

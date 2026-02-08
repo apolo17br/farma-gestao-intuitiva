@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from "react";
-import { Pharmacy, TechnicalSupervisor, Address } from "../types/pharmacy.types";
+import { Pharmacy, TechnicalSupervisor, Address, YearlyMonthlyControl, YearlyQuarterlyControl } from "../types/pharmacy.types";
 import { toast } from "../components/ui/sonner";
 import { supabase } from "../lib/supabase";
 
@@ -13,8 +13,6 @@ interface PharmacyContextType {
   setFilterTerm: (term: string) => void;
   filterTerm: string;
   loading: boolean;
-  selectedYear: number;
-  setSelectedYear: (year: number) => void;
 }
 
 const PharmacyContext = createContext<PharmacyContextType | undefined>(undefined);
@@ -27,7 +25,6 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [filterTerm, setFilterTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const filteredPharmacies = pharmacies.filter((pharmacy) => {
     if (!pharmacy) return false;
@@ -53,7 +50,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
   useEffect(() => {
     fetchPharmacies();
-  }, [selectedYear]);
+  }, []);
 
   const fetchPharmacies = async () => {
     try {
@@ -73,17 +70,52 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
       if (error) throw error;
 
+      // Função auxiliar para processar controles mensais com ano
+      const processMonthlyControls = (controls: any[]): YearlyMonthlyControl[] => {
+        if (!controls || !Array.isArray(controls)) return [];
+        return controls.map(control => {
+          const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          return {
+            id: control.id,
+            pharmacy_id: control.pharmacy_id,
+            year: createdAt.getFullYear(),
+            created_at: control.created_at,
+            janeiro: control.janeiro || '',
+            fevereiro: control.fevereiro || '',
+            marco: control.marco || '',
+            abril: control.abril || '',
+            maio: control.maio || '',
+            junho: control.junho || '',
+            julho: control.julho || '',
+            agosto: control.agosto || '',
+            setembro: control.setembro || '',
+            outubro: control.outubro || '',
+            novembro: control.novembro || '',
+            dezembro: control.dezembro || '',
+          };
+        }).sort((a, b) => a.year - b.year); // Ordenar por ano
+      };
+
+      // Função auxiliar para processar controles trimestrais com ano
+      const processQuarterlyControls = (controls: any[]): YearlyQuarterlyControl[] => {
+        if (!controls || !Array.isArray(controls)) return [];
+        return controls.map(control => {
+          const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          return {
+            id: control.id,
+            pharmacy_id: control.pharmacy_id,
+            year: createdAt.getFullYear(),
+            created_at: control.created_at,
+            primeiro: control.primeiro || '',
+            segundo: control.segundo || '',
+            terceiro: control.terceiro || '',
+            quarto: control.quarto || '',
+          };
+        }).sort((a, b) => a.year - b.year); // Ordenar por ano
+      };
+
       const formattedPharmacies = (data || []).map(pharmacy => {
         const addressData = pharmacy.address;
-
-        const filterByYear = (items: any[]) => {
-          if (!items || !Array.isArray(items)) return {};
-          return items.find(item => {
-            const itemYear = new Date(item.created_at).getFullYear();
-            return itemYear === selectedYear;
-          }) || {};
-        };
-
         return {
           ...pharmacy,
           id: pharmacy.id,
@@ -97,9 +129,9 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           dataCadastro: pharmacy.data_cadastro,
           ultimaAtualizacao: pharmacy.ultima_atualizacao,
           responsaveisTecnicos: pharmacy?.responsaveisTecnicos?.map((rt: { technical_supervisor: TechnicalSupervisor }) => rt.technical_supervisor) || [],
-          controlesMensaisA: pharmacy.controlesMensaisA || [],
-          controlesMensaisB2: pharmacy.controlesMensaisB2 || [],
-          controlesTrimestrais: pharmacy.controlesTrimestrais || [],
+          controlesMensaisA: processMonthlyControls(pharmacy?.controlesMensaisA),
+          controlesMensaisB2: processMonthlyControls(pharmacy?.controlesMensaisB2),
+          controlesTrimestrais: processQuarterlyControls(pharmacy?.controlesTrimestrais),
           address: addressData ? {
             id: addressData.id,
             pharmacy_id: addressData.pharmacy_id,
@@ -196,20 +228,19 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       }
 
       if (pharmacyId) {
-        const creationDate = `${selectedYear}-01-01T12:00:00.000Z`; // Noon to be safe
         const { error: monthlyAError } = await supabase
           .from('monthly_controls_a')
-          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisA, created_at: creationDate });
+          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisA });
         if (monthlyAError) throw monthlyAError;
 
         const { error: monthlyB2Error } = await supabase
           .from('monthly_controls_b2')
-          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisB2, created_at: creationDate });
+          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisB2 });
         if (monthlyB2Error) throw monthlyB2Error;
 
         const { error: quarterlyError } = await supabase
           .from('quarterly_controls')
-          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesTrimestrais, created_at: creationDate });
+          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesTrimestrais });
         if (quarterlyError) throw quarterlyError;
       }
 
@@ -325,40 +356,26 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         if (deleteAddressError) throw deleteAddressError;
       }
 
-      const getYearRange = () => {
-        const start = `${selectedYear}-01-01T00:00:00.000Z`;
-        const end = `${selectedYear}-12-31T23:59:59.999Z`;
-        return { start, end };
-      };
-      const { start: yearStart, end: yearEnd } = getYearRange();
-      const forcedCreationDate = `${selectedYear}-01-01T12:00:00.000Z`;
-
       const { data: existingMonthlyA, error: checkMonthlyAError } = await supabase
         .from('monthly_controls_a')
         .select('id')
         .eq('pharmacy_id', pharmacyId)
-        .gte('created_at', yearStart)
-        .lte('created_at', yearEnd)
         .maybeSingle();
 
       if (checkMonthlyAError && checkMonthlyAError.code !== 'PGRST116') {
         throw checkMonthlyAError;
       }
 
-      const monthlyAPayload = Array.isArray(updatedPharmacy.controlesMensaisA)
-        ? updatedPharmacy.controlesMensaisA.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {}
-        : updatedPharmacy.controlesMensaisA;
-
       if (existingMonthlyA) {
         const { error: monthlyAError } = await supabase
           .from('monthly_controls_a')
-          .update(monthlyAPayload)
-          .eq('id', existingMonthlyA.id);
+          .update(updatedPharmacy.controlesMensaisA)
+          .eq('pharmacy_id', pharmacyId);
         if (monthlyAError) throw monthlyAError;
       } else {
         const { error: insertMonthlyAError } = await supabase
           .from('monthly_controls_a')
-          .insert({ pharmacy_id: pharmacyId, ...monthlyAPayload, created_at: forcedCreationDate });
+          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisA });
         if (insertMonthlyAError) throw insertMonthlyAError;
       }
 
@@ -366,28 +383,22 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         .from('monthly_controls_b2')
         .select('id')
         .eq('pharmacy_id', pharmacyId)
-        .gte('created_at', yearStart)
-        .lte('created_at', yearEnd)
         .maybeSingle();
 
       if (checkMonthlyB2Error && checkMonthlyB2Error.code !== 'PGRST116') {
         throw checkMonthlyB2Error;
       }
 
-      const monthlyB2Payload = Array.isArray(updatedPharmacy.controlesMensaisB2)
-        ? updatedPharmacy.controlesMensaisB2.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {}
-        : updatedPharmacy.controlesMensaisB2;
-
       if (existingMonthlyB2) {
         const { error: monthlyB2Error } = await supabase
           .from('monthly_controls_b2')
-          .update(monthlyB2Payload)
-          .eq('id', existingMonthlyB2.id);
+          .update(updatedPharmacy.controlesMensaisB2)
+          .eq('pharmacy_id', pharmacyId);
         if (monthlyB2Error) throw monthlyB2Error;
       } else {
         const { error: insertMonthlyB2Error } = await supabase
           .from('monthly_controls_b2')
-          .insert({ pharmacy_id: pharmacyId, ...monthlyB2Payload, created_at: forcedCreationDate });
+          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisB2 });
         if (insertMonthlyB2Error) throw insertMonthlyB2Error;
       }
 
@@ -395,28 +406,22 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         .from('quarterly_controls')
         .select('id')
         .eq('pharmacy_id', pharmacyId)
-        .gte('created_at', yearStart)
-        .lte('created_at', yearEnd)
         .maybeSingle();
 
       if (checkQuarterlyError && checkQuarterlyError.code !== 'PGRST116') {
         throw checkQuarterlyError;
       }
 
-      const quarterlyPayload = Array.isArray(updatedPharmacy.controlesTrimestrais)
-        ? updatedPharmacy.controlesTrimestrais.find((item: any) => new Date(item.created_at).getFullYear() === selectedYear) || {}
-        : updatedPharmacy.controlesTrimestrais;
-
       if (existingQuarterly) {
         const { error: quarterlyError } = await supabase
           .from('quarterly_controls')
-          .update(quarterlyPayload)
-          .eq('id', existingQuarterly.id);
+          .update(updatedPharmacy.controlesTrimestrais)
+          .eq('pharmacy_id', pharmacyId);
         if (quarterlyError) throw quarterlyError;
       } else {
         const { error: insertQuarterlyError } = await supabase
           .from('quarterly_controls')
-          .insert({ pharmacy_id: pharmacyId, ...quarterlyPayload, created_at: forcedCreationDate });
+          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesTrimestrais });
         if (insertQuarterlyError) throw insertQuarterlyError;
       }
 
@@ -476,6 +481,50 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
       if (error) throw error;
 
+      // Função auxiliar para processar controles mensais com ano
+      const processMonthlyControls = (controls: any[]): YearlyMonthlyControl[] => {
+        if (!controls || !Array.isArray(controls)) return [];
+        return controls.map(control => {
+          const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          return {
+            id: control.id,
+            pharmacy_id: control.pharmacy_id,
+            year: createdAt.getFullYear(),
+            created_at: control.created_at,
+            janeiro: control.janeiro || '',
+            fevereiro: control.fevereiro || '',
+            marco: control.marco || '',
+            abril: control.abril || '',
+            maio: control.maio || '',
+            junho: control.junho || '',
+            julho: control.julho || '',
+            agosto: control.agosto || '',
+            setembro: control.setembro || '',
+            outubro: control.outubro || '',
+            novembro: control.novembro || '',
+            dezembro: control.dezembro || '',
+          };
+        }).sort((a, b) => a.year - b.year);
+      };
+
+      // Função auxiliar para processar controles trimestrais com ano
+      const processQuarterlyControls = (controls: any[]): YearlyQuarterlyControl[] => {
+        if (!controls || !Array.isArray(controls)) return [];
+        return controls.map(control => {
+          const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          return {
+            id: control.id,
+            pharmacy_id: control.pharmacy_id,
+            year: createdAt.getFullYear(),
+            created_at: control.created_at,
+            primeiro: control.primeiro || '',
+            segundo: control.segundo || '',
+            terceiro: control.terceiro || '',
+            quarto: control.quarto || '',
+          };
+        }).sort((a, b) => a.year - b.year);
+      };
+
       if (data) {
         const addressData = data.address;
         return {
@@ -491,9 +540,9 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           dataCadastro: data.data_cadastro,
           ultimaAtualizacao: data.ultima_atualizacao,
           responsaveisTecnicos: data.responsaveisTecnicos?.map((rt: { technical_supervisor: TechnicalSupervisor }) => rt.technical_supervisor) || [],
-          controlesMensaisA: data.controlesMensaisA || [],
-          controlesMensaisB2: data.controlesMensaisB2 || [],
-          controlesTrimestrais: data.controlesTrimestrais || [],
+          controlesMensaisA: processMonthlyControls(data.controlesMensaisA),
+          controlesMensaisB2: processMonthlyControls(data.controlesMensaisB2),
+          controlesTrimestrais: processQuarterlyControls(data.controlesTrimestrais),
           address: addressData ? {
             id: addressData.id,
             pharmacy_id: addressData.pharmacy_id,
@@ -526,9 +575,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         filteredPharmacies,
         setFilterTerm,
         filterTerm,
-        loading,
-        selectedYear,
-        setSelectedYear
+        loading
       }}
     >
       {children}

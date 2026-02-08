@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
-import { Pharmacy, TechnicalSupervisor, MonthlyControl, QuarterlyControl, Address } from "../types/pharmacy.types";
+import { Pharmacy, TechnicalSupervisor, MonthlyControl, QuarterlyControl, Address, YearlyMonthlyControl, YearlyQuarterlyControl } from "../types/pharmacy.types";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,35 @@ const emptyAddress: Address = {
   complemento: "",
 };
 
+// Ano atual para novos controles
+const currentYear = new Date().getFullYear();
+
+// Controle mensal vazio para o ano atual
+const createEmptyMonthlyControl = (year: number): YearlyMonthlyControl => ({
+  year,
+  janeiro: "",
+  fevereiro: "",
+  marco: "",
+  abril: "",
+  maio: "",
+  junho: "",
+  julho: "",
+  agosto: "",
+  setembro: "",
+  outubro: "",
+  novembro: "",
+  dezembro: "",
+});
+
+// Controle trimestral vazio para o ano atual
+const createEmptyQuarterlyControl = (year: number): YearlyQuarterlyControl => ({
+  year,
+  primeiro: "",
+  segundo: "",
+  terceiro: "",
+  quarto: "",
+});
+
 const emptyPharmacy = {
   cnpj: "",
   razaoSocial: "",
@@ -28,40 +57,9 @@ const emptyPharmacy = {
   alvara: "",
   email: "",
   responsaveisTecnicos: [{ nome: "", crf: "" }],
-  controlesMensaisA: {
-    janeiro: "",
-    fevereiro: "",
-    marco: "",
-    abril: "",
-    maio: "",
-    junho: "",
-    julho: "",
-    agosto: "",
-    setembro: "",
-    outubro: "",
-    novembro: "",
-    dezembro: "",
-  },
-  controlesMensaisB2: {
-    janeiro: "",
-    fevereiro: "",
-    marco: "",
-    abril: "",
-    maio: "",
-    junho: "",
-    julho: "",
-    agosto: "",
-    setembro: "",
-    outubro: "",
-    novembro: "",
-    dezembro: "",
-  },
-  controlesTrimestrais: {
-    primeiro: "",
-    segundo: "",
-    terceiro: "",
-    quarto: "",
-  },
+  controlesMensaisA: [createEmptyMonthlyControl(currentYear)],
+  controlesMensaisB2: [createEmptyMonthlyControl(currentYear)],
+  controlesTrimestrais: [createEmptyQuarterlyControl(currentYear)],
   observacoes: "",
   address: { ...emptyAddress },
 };
@@ -78,45 +76,56 @@ const ensureString = (value: string | null | undefined): string => value ?? "";
 const ensureSupervisors = (supervisors: TechnicalSupervisor[] | null | undefined): TechnicalSupervisor[] =>
   supervisors && supervisors.length > 0 ? supervisors.map(s => ({ nome: ensureString(s.nome), crf: ensureString(s.crf) })) : [{ nome: "", crf: "" }];
 
-// Função auxiliar para garantir que os controles mensais não sejam null/undefined
-const ensureMonthlyControls = (controls: any, year?: number): MonthlyControl => {
-  const defaultControls: MonthlyControl = {
-    janeiro: "", fevereiro: "", marco: "", abril: "", maio: "", junho: "",
-    julho: "", agosto: "", setembro: "", outubro: "", novembro: "", dezembro: ""
+// Função auxiliar para processar um controle mensal único
+const processMonthlyControl = (control: any): YearlyMonthlyControl => {
+  return {
+    id: control.id,
+    pharmacy_id: control.pharmacy_id,
+    year: control.year || currentYear,
+    created_at: control.created_at,
+    janeiro: ensureString(control.janeiro),
+    fevereiro: ensureString(control.fevereiro),
+    marco: ensureString(control.marco),
+    abril: ensureString(control.abril),
+    maio: ensureString(control.maio),
+    junho: ensureString(control.junho),
+    julho: ensureString(control.julho),
+    agosto: ensureString(control.agosto),
+    setembro: ensureString(control.setembro),
+    outubro: ensureString(control.outubro),
+    novembro: ensureString(control.novembro),
+    dezembro: ensureString(control.dezembro),
   };
-
-  let targetControl = controls;
-  if (Array.isArray(controls) && year) {
-    targetControl = controls.find((c: any) => new Date(c.created_at).getFullYear() === year);
-  }
-
-  if (!targetControl) return defaultControls;
-  // Garante que cada mês tenha um valor string
-  Object.keys(defaultControls).forEach(key => {
-    const monthKey = key as keyof MonthlyControl;
-    (defaultControls[monthKey] as string) = ensureString(targetControl[monthKey]);
-  });
-  return defaultControls;
 };
 
-// Função auxiliar para garantir que os controles trimestrais não sejam null/undefined
-const ensureQuarterlyControls = (controls: any, year?: number): QuarterlyControl => {
-  const defaultControls: QuarterlyControl = {
-    primeiro: "", segundo: "", terceiro: "", quarto: ""
-  };
-
-  let targetControl = controls;
-  if (Array.isArray(controls) && year) {
-    targetControl = controls.find((c: any) => new Date(c.created_at).getFullYear() === year);
+// Função auxiliar para garantir que os controles mensais não sejam null/undefined (agora trabalha com arrays)
+const ensureMonthlyControlsArray = (controls: YearlyMonthlyControl[] | null | undefined): YearlyMonthlyControl[] => {
+  if (!controls || !Array.isArray(controls) || controls.length === 0) {
+    return [createEmptyMonthlyControl(currentYear)];
   }
+  return controls.map(processMonthlyControl);
+};
 
-  if (!targetControl) return defaultControls;
-  // Garante que cada trimestre tenha um valor string
-  Object.keys(defaultControls).forEach(key => {
-    const quarterKey = key as keyof QuarterlyControl;
-    (defaultControls[quarterKey] as string) = ensureString(targetControl[quarterKey]);
-  });
-  return defaultControls;
+// Função auxiliar para processar um controle trimestral único
+const processQuarterlyControl = (control: any): YearlyQuarterlyControl => {
+  return {
+    id: control.id,
+    pharmacy_id: control.pharmacy_id,
+    year: control.year || currentYear,
+    created_at: control.created_at,
+    primeiro: ensureString(control.primeiro),
+    segundo: ensureString(control.segundo),
+    terceiro: ensureString(control.terceiro),
+    quarto: ensureString(control.quarto),
+  };
+};
+
+// Função auxiliar para garantir que os controles trimestrais não sejam null/undefined (agora trabalha com arrays)
+const ensureQuarterlyControlsArray = (controls: YearlyQuarterlyControl[] | null | undefined): YearlyQuarterlyControl[] => {
+  if (!controls || !Array.isArray(controls) || controls.length === 0) {
+    return [createEmptyQuarterlyControl(currentYear)];
+  }
+  return controls.map(processQuarterlyControl);
 };
 
 // Função auxiliar para garantir que o endereço e seus campos sejam strings
@@ -133,18 +142,8 @@ const ensureAddress = (address: Address | null | undefined): Address => {
   };
 };
 
-type PharmacyFormData = Omit<Pharmacy, "id" | "dataCadastro" | "ultimaAtualizacao" | "controlesMensaisA" | "controlesMensaisB2" | "controlesTrimestrais"> & {
-  controlesMensaisA: MonthlyControl;
-  controlesMensaisB2: MonthlyControl;
-  controlesTrimestrais: QuarterlyControl;
-  address: Address;
-};
-
 const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false }) => {
-  const { addPharmacy, updatePharmacy, selectedYear } = usePharmacy();
-  const navigate = useNavigate();
-
-  const [formData, setFormData] = useState<PharmacyFormData>(() => {
+  const [formData, setFormData] = useState<Omit<Pharmacy, "id" | "dataCadastro" | "ultimaAtualizacao"> & { address: Address }>(() => {
     if (pharmacy) {
       return {
         cnpj: ensureString(pharmacy.cnpj),
@@ -155,15 +154,18 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
-        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA, selectedYear),
-        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2, selectedYear),
-        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais, selectedYear),
+        controlesMensaisA: ensureMonthlyControlsArray(pharmacy.controlesMensaisA),
+        controlesMensaisB2: ensureMonthlyControlsArray(pharmacy.controlesMensaisB2),
+        controlesTrimestrais: ensureQuarterlyControlsArray(pharmacy.controlesTrimestrais),
         address: ensureAddress(pharmacy.address),
       };
     } else {
       return { ...emptyPharmacy, address: { ...emptyAddress } };
     }
   });
+
+  const { addPharmacy, updatePharmacy } = usePharmacy();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (pharmacy) {
@@ -177,15 +179,15 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         email: ensureString(pharmacy.email),
         observacoes: ensureString(pharmacy.observacoes),
         responsaveisTecnicos: ensureSupervisors(pharmacy.responsaveisTecnicos),
-        controlesMensaisA: ensureMonthlyControls(pharmacy.controlesMensaisA, selectedYear),
-        controlesMensaisB2: ensureMonthlyControls(pharmacy.controlesMensaisB2, selectedYear),
-        controlesTrimestrais: ensureQuarterlyControls(pharmacy.controlesTrimestrais, selectedYear),
+        controlesMensaisA: ensureMonthlyControlsArray(pharmacy.controlesMensaisA),
+        controlesMensaisB2: ensureMonthlyControlsArray(pharmacy.controlesMensaisB2),
+        controlesTrimestrais: ensureQuarterlyControlsArray(pharmacy.controlesTrimestrais),
         address: ensureAddress(pharmacy.address),
       }));
     } else {
       setFormData({ ...emptyPharmacy, address: { ...emptyAddress } });
     }
-  }, [pharmacy, selectedYear]);
+  }, [pharmacy]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -242,34 +244,48 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     }));
   };
 
-  const handleMonthlyControlChange = (type: 'A' | 'B2', month: string, checked: boolean) => {
+  // Função para atualizar controle mensal de um ano específico
+  const handleMonthlyControlChange = (type: 'A' | 'B2', yearIndex: number, month: string, checked: boolean) => {
     if (type === 'A') {
-      setFormData((prev) => ({
-        ...prev,
-        controlesMensaisA: {
-          ...prev.controlesMensaisA,
+      setFormData((prev) => {
+        const newControls = [...prev.controlesMensaisA];
+        newControls[yearIndex] = {
+          ...newControls[yearIndex],
           [month]: checked ? "realizado" : "",
-        },
-      }));
+        };
+        return {
+          ...prev,
+          controlesMensaisA: newControls,
+        };
+      });
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        controlesMensaisB2: {
-          ...prev.controlesMensaisB2,
+      setFormData((prev) => {
+        const newControls = [...prev.controlesMensaisB2];
+        newControls[yearIndex] = {
+          ...newControls[yearIndex],
           [month]: checked ? "realizado" : "",
-        },
-      }));
+        };
+        return {
+          ...prev,
+          controlesMensaisB2: newControls,
+        };
+      });
     }
   };
 
-  const handleQuarterlyControlChange = (quarter: string, checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      controlesTrimestrais: {
-        ...prev.controlesTrimestrais,
+  // Função para atualizar controle trimestral de um ano específico
+  const handleQuarterlyControlChange = (yearIndex: number, quarter: string, checked: boolean) => {
+    setFormData((prev) => {
+      const newControls = [...prev.controlesTrimestrais];
+      newControls[yearIndex] = {
+        ...newControls[yearIndex],
         [quarter]: checked ? "realizado" : "",
-      },
-    }));
+      };
+      return {
+        ...prev,
+        controlesTrimestrais: newControls,
+      };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -316,7 +332,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     <form onSubmit={handleSubmit} className="space-y-8">
       <Card>
         <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Dados da Farmácia ({selectedYear})</h3>
+          <h3 className="text-lg font-semibold mb-4">Dados da Farmácia</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="cnpj">
@@ -573,25 +589,32 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           <h3 className="text-lg font-semibold mb-4">
             Controle Mensal de RMNRs - Receitas A
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {months.map((month) => (
-              <div key={month.key} className="flex items-start space-x-2">
-                <Checkbox
-                  id={`monthly-a-${month.key}`}
-                  checked={!!formData.controlesMensaisA[month.key]}
-                  onCheckedChange={(checked) =>
-                    handleMonthlyControlChange('A', month.key, checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor={`monthly-a-${month.key}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {month.label}
-                </label>
+          {formData.controlesMensaisA.map((yearControl, yearIndex) => (
+            <div key={yearControl.year || yearIndex} className="mb-6 last:mb-0">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                Ano {yearControl.year}
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {months.map((month) => (
+                  <div key={month.key} className="flex items-start space-x-2">
+                    <Checkbox
+                      id={`monthly-a-${yearControl.year}-${month.key}`}
+                      checked={!!(yearControl as any)[month.key]}
+                      onCheckedChange={(checked) =>
+                        handleMonthlyControlChange('A', yearIndex, month.key, checked as boolean)
+                      }
+                    />
+                    <label
+                      htmlFor={`monthly-a-${yearControl.year}-${month.key}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {month.label}
+                    </label>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -600,50 +623,64 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           <h3 className="text-lg font-semibold mb-4">
             Controle Mensal de RMNRs - Receitas B2
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {months.map((month) => (
-              <div key={month.key} className="flex items-start space-x-2">
-                <Checkbox
-                  id={`monthly-b2-${month.key}`}
-                  checked={!!formData.controlesMensaisB2[month.key]}
-                  onCheckedChange={(checked) =>
-                    handleMonthlyControlChange('B2', month.key, checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor={`monthly-b2-${month.key}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {month.label}
-                </label>
+          {formData.controlesMensaisB2.map((yearControl, yearIndex) => (
+            <div key={yearControl.year || yearIndex} className="mb-6 last:mb-0">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                Ano {yearControl.year}
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {months.map((month) => (
+                  <div key={month.key} className="flex items-start space-x-2">
+                    <Checkbox
+                      id={`monthly-b2-${yearControl.year}-${month.key}`}
+                      checked={!!(yearControl as any)[month.key]}
+                      onCheckedChange={(checked) =>
+                        handleMonthlyControlChange('B2', yearIndex, month.key, checked as boolean)
+                      }
+                    />
+                    <label
+                      htmlFor={`monthly-b2-${yearControl.year}-${month.key}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {month.label}
+                    </label>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="p-6">
           <h3 className="text-lg font-semibold mb-4">Controle Trimestral</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {quarters.map((quarter) => (
-              <div key={quarter.key} className="flex items-start space-x-2">
-                <Checkbox
-                  id={`quarterly-${quarter.key}`}
-                  checked={!!formData.controlesTrimestrais[quarter.key]}
-                  onCheckedChange={(checked) =>
-                    handleQuarterlyControlChange(quarter.key, checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor={`quarterly-${quarter.key}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {quarter.label}
-                </label>
+          {formData.controlesTrimestrais.map((yearControl, yearIndex) => (
+            <div key={yearControl.year || yearIndex} className="mb-6 last:mb-0">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                Ano {yearControl.year}
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {quarters.map((quarter) => (
+                  <div key={quarter.key} className="flex items-start space-x-2">
+                    <Checkbox
+                      id={`quarterly-${yearControl.year}-${quarter.key}`}
+                      checked={!!(yearControl as any)[quarter.key]}
+                      onCheckedChange={(checked) =>
+                        handleQuarterlyControlChange(yearIndex, quarter.key, checked as boolean)
+                      }
+                    />
+                    <label
+                      htmlFor={`quarterly-${yearControl.year}-${quarter.key}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {quarter.label}
+                    </label>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
 
@@ -678,7 +715,7 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           {isEditing ? "Salvar Alterações" : "Cadastrar Farmácia"}
         </Button>
       </div>
-    </form>
+    </form >
   );
 };
 

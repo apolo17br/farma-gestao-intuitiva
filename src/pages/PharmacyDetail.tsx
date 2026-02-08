@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit, Trash2, ArrowLeft, Check, MapPin, ChevronLeft, ChevronRight } from "lucide-react";
+import { Edit, Trash2, ArrowLeft, Check, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -24,7 +24,7 @@ import { Pharmacy, TechnicalSupervisor } from "../types/pharmacy.types";
 const PharmacyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPharmacy, deletePharmacy, loading, selectedYear, setSelectedYear } = usePharmacy();
+  const { getPharmacy, deletePharmacy, loading } = usePharmacy();
   const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
 
   useEffect(() => {
@@ -79,19 +79,6 @@ const PharmacyDetail: React.FC = () => {
     { key: "quarto", label: "4º Trimestre" },
   ];
 
-
-  const getControlForYear = (controls: any[]) => {
-    if (!controls || !Array.isArray(controls)) return {};
-    return controls.find(c => {
-      if (!c.created_at) return false;
-      return new Date(c.created_at).getFullYear() === selectedYear
-    }) || {};
-  };
-
-  const currentMonthlyA = pharmacy ? getControlForYear(pharmacy.controlesMensaisA) : {};
-  const currentMonthlyB2 = pharmacy ? getControlForYear(pharmacy.controlesMensaisB2) : {};
-  const currentQuarterly = pharmacy ? getControlForYear(pharmacy.controlesTrimestrais) : {};
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -102,16 +89,6 @@ const PharmacyDetail: React.FC = () => {
           <h1 className="text-3xl font-bold">Detalhes da Farmácia</h1>
         </div>
         <div className="flex gap-2">
-          <div className="flex items-center gap-2 mr-2 bg-card border rounded-md p-1 shadow-sm">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="font-semibold min-w-[3rem] text-center">{selectedYear}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear + 1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
           <Link to={`/farmacias/${pharmacy.id}/editar`}>
             <Button variant="outline" className="w-full sm:w-auto">
               <Edit className="mr-2 h-4 w-4" /> Editar
@@ -259,73 +236,103 @@ const PharmacyDetail: React.FC = () => {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {/* Controles Mensais A por ano */}
           <Card>
             <CardHeader>
               <CardTitle>Controle Mensal de RMNRs - Receitas A</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {months.map((month) => (
-                  <div key={month.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${currentMonthlyA[month.key]
-                      ? 'bg-primary border-primary'
-                      : 'border-gray-300'
-                      }`}>
-                      {currentMonthlyA[month.key] && (
-                        <Check className="h-4 w-4 text-primary-foreground" />
-                      )}
+              {pharmacy.controlesMensaisA && pharmacy.controlesMensaisA.length > 0 ? (
+                pharmacy.controlesMensaisA.map((yearControl) => (
+                  <div key={yearControl.year} className="mb-6 last:mb-0">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Ano {yearControl.year}</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {months.map((month) => (
+                        <div key={month.key} className="flex items-center gap-2">
+                          <div className={`h-4 w-4 rounded-sm border ${yearControl[month.key as keyof typeof yearControl]
+                            ? 'bg-primary border-primary'
+                            : 'border-gray-300'
+                            }`}>
+                            {yearControl[month.key as keyof typeof yearControl] && (
+                              <Check className="h-4 w-4 text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-sm">{month.label}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-sm">{month.label}</span>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum controle cadastrado</p>
+              )}
             </CardContent>
           </Card>
 
+          {/* Controles Mensais B2 por ano */}
           <Card>
             <CardHeader>
               <CardTitle>Controle Mensal de RMNRs - Receitas B2</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {months.map((month) => (
-                  <div key={month.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${currentMonthlyB2[month.key]
-                      ? 'bg-primary border-primary'
-                      : 'border-gray-300'
-                      }`}>
-                      {currentMonthlyB2[month.key] && (
-                        <Check className="h-4 w-4 text-primary-foreground" />
-                      )}
+              {pharmacy.controlesMensaisB2 && pharmacy.controlesMensaisB2.length > 0 ? (
+                pharmacy.controlesMensaisB2.map((yearControl) => (
+                  <div key={yearControl.year} className="mb-6 last:mb-0">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Ano {yearControl.year}</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {months.map((month) => (
+                        <div key={month.key} className="flex items-center gap-2">
+                          <div className={`h-4 w-4 rounded-sm border ${yearControl[month.key as keyof typeof yearControl]
+                            ? 'bg-primary border-primary'
+                            : 'border-gray-300'
+                            }`}>
+                            {yearControl[month.key as keyof typeof yearControl] && (
+                              <Check className="h-4 w-4 text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-sm">{month.label}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-sm">{month.label}</span>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum controle cadastrado</p>
+              )}
             </CardContent>
           </Card>
 
+          {/* Controles Trimestrais por ano */}
           <Card>
             <CardHeader>
               <CardTitle>Controle Trimestral</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {quarters.map((quarter) => (
-                  <div key={quarter.key} className="flex items-center gap-2">
-                    <div className={`h-4 w-4 rounded-sm border ${currentQuarterly[quarter.key]
-                      ? 'bg-primary border-primary'
-                      : 'border-gray-300'
-                      }`}>
-                      {currentQuarterly[quarter.key] && (
-                        <Check className="h-4 w-4 text-primary-foreground" />
-                      )}
+              {pharmacy.controlesTrimestrais && pharmacy.controlesTrimestrais.length > 0 ? (
+                pharmacy.controlesTrimestrais.map((yearControl) => (
+                  <div key={yearControl.year} className="mb-6 last:mb-0">
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Ano {yearControl.year}</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      {quarters.map((quarter) => (
+                        <div key={quarter.key} className="flex items-center gap-2">
+                          <div className={`h-4 w-4 rounded-sm border ${yearControl[quarter.key as keyof typeof yearControl]
+                            ? 'bg-primary border-primary'
+                            : 'border-gray-300'
+                            }`}>
+                            {yearControl[quarter.key as keyof typeof yearControl] && (
+                              <Check className="h-4 w-4 text-primary-foreground" />
+                            )}
+                          </div>
+                          <span className="text-sm">{quarter.label}</span>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-sm">{quarter.label}</span>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum controle cadastrado</p>
+              )}
             </CardContent>
           </Card>
         </div>

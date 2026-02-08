@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { usePharmacy } from "../context/PharmacyContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, AlertCircle, Calendar, History, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, AlertCircle, Calendar, History, X } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Dashboard: React.FC = () => {
-  const { pharmacies, loading, selectedYear, setSelectedYear } = usePharmacy();
+  const { pharmacies, loading } = usePharmacy();
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   // Dados para os indicadores
@@ -54,26 +54,12 @@ const Dashboard: React.FC = () => {
     return !control || control.trim() === "";
   };
 
-  // Contar pendências de controles (usando a mesma lógica do Deadlines)
+  // Contar pendências de controles (atualizado para suportar múltiplos anos)
   const pendingControls = useMemo(() => {
-    const pendingData: { [month: string]: { [category: string]: any[] } } = {};
+    // Estrutura agora usa chave no formato "Mês/Ano" para identificar cada período único
+    const pendingData: { [monthYear: string]: { [category: string]: any[] } } = {};
 
-    // Inicializar estrutura para todos os meses
-    const monthNames = [
-      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-    ];
-
-    for (let month = 0; month < 12; month++) {
-      const monthName = monthNames[month];
-      pendingData[monthName] = {
-        "Receitas A": [],
-        "Receitas B2": [],
-        "Trimestral": []
-      };
-    }
-
-    const monthPropertyMapping: { [key: number]: string } = {
+    const monthPropertyMappingLocal: { [key: number]: string } = {
       0: "janeiro", 1: "fevereiro", 2: "marco", 3: "abril",
       4: "maio", 5: "junho", 6: "julho", 7: "agosto",
       8: "setembro", 9: "outubro", 10: "novembro", 11: "dezembro",
@@ -83,73 +69,111 @@ const Dashboard: React.FC = () => {
       1: "primeiro", 2: "segundo", 3: "terceiro", 4: "quarto",
     };
 
+    // Função para criar a chave mês/ano
+    const getMonthYearKey = (monthIndex: number, year: number) => {
+      return `${monthNames[monthIndex]}/${year}`;
+    };
+
+    // Função para inicializar a estrutura de um mês/ano se não existir
+    const ensureMonthYearExists = (key: string) => {
+      if (!pendingData[key]) {
+        pendingData[key] = {
+          "Receitas A": [],
+          "Receitas B2": [],
+          "Trimestral": []
+        };
+      }
+    };
+
     pharmacies.forEach(pharmacy => {
-      pharmacy.controlesMensaisA?.forEach(controlItem => {
-        Object.entries(controlItem).forEach(([monthKey, control]) => {
-          if (monthKey === 'created_at' || monthKey === 'id' || monthKey === 'pharmacy_id') return;
-          if (isControlPending(control as string)) {
-            const monthIndex = Object.keys(monthPropertyMapping).find(
-              key => monthPropertyMapping[parseInt(key)] === monthKey
-            );
-            if (monthIndex !== undefined) {
-              const monthName = monthNames[parseInt(monthIndex)];
-              pendingData[monthName]["Receitas A"].push({
-                pharmacy,
-                month: monthName,
-                category: "Receitas A",
-                type: "monthly"
-              });
-            }
-          }
-        });
-      });
-
-      pharmacy.controlesMensaisB2?.forEach(controlItem => {
-        Object.entries(controlItem).forEach(([monthKey, control]) => {
-          if (monthKey === 'created_at' || monthKey === 'id' || monthKey === 'pharmacy_id') return;
-          if (isControlPending(control as string)) {
-            const monthIndex = Object.keys(monthPropertyMapping).find(
-              key => monthPropertyMapping[parseInt(key)] === monthKey
-            );
-            if (monthIndex !== undefined) {
-              const monthName = monthNames[parseInt(monthIndex)];
-              pendingData[monthName]["Receitas B2"].push({
-                pharmacy,
-                month: monthName,
-                category: "Receitas B2",
-                type: "monthly"
-              });
-            }
-          }
-        });
-      });
-
-      pharmacy.controlesTrimestrais?.forEach(controlItem => {
-        Object.entries(controlItem).forEach(([quarterKey, control]) => {
-          if (quarterKey === 'created_at' || quarterKey === 'id' || quarterKey === 'pharmacy_id') return;
-          if (isControlPending(control as string)) {
-            const quarterNumber = Object.keys(quarterPropertyMapping).find(
-              key => quarterPropertyMapping[parseInt(key)] === quarterKey
-            );
-            if (quarterNumber !== undefined) {
-              const quarter = parseInt(quarterNumber);
-              const monthsInQuarter = [
-                [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
-              ];
-              monthsInQuarter[quarter - 1].forEach(monthIndex => {
-                const monthName = monthNames[monthIndex];
-                pendingData[monthName]["Trimestral"].push({
+      // Processar controles mensais A (agora é um array por ano)
+      if (Array.isArray(pharmacy.controlesMensaisA)) {
+        pharmacy.controlesMensaisA.forEach(yearControl => {
+          const year = yearControl.year;
+          Object.entries(yearControl).forEach(([monthKey, control]) => {
+            if (monthKey === 'id' || monthKey === 'pharmacy_id' || monthKey === 'year' || monthKey === 'created_at') return;
+            if (isControlPending(control as string)) {
+              const monthIndex = Object.keys(monthPropertyMappingLocal).find(
+                key => monthPropertyMappingLocal[parseInt(key)] === monthKey
+              );
+              if (monthIndex !== undefined) {
+                const monthYearKey = getMonthYearKey(parseInt(monthIndex), year);
+                ensureMonthYearExists(monthYearKey);
+                pendingData[monthYearKey]["Receitas A"].push({
                   pharmacy,
-                  month: monthName,
-                  category: "Trimestral",
-                  type: "quarterly",
-                  quarter
+                  month: monthNames[parseInt(monthIndex)],
+                  year,
+                  monthYearKey,
+                  category: "Receitas A",
+                  type: "monthly"
                 });
-              });
+              }
             }
-          }
+          });
         });
-      });
+      }
+
+      // Processar controles mensais B2 (agora é um array por ano)
+      if (Array.isArray(pharmacy.controlesMensaisB2)) {
+        pharmacy.controlesMensaisB2.forEach(yearControl => {
+          const year = yearControl.year;
+          Object.entries(yearControl).forEach(([monthKey, control]) => {
+            if (monthKey === 'id' || monthKey === 'pharmacy_id' || monthKey === 'year' || monthKey === 'created_at') return;
+            if (isControlPending(control as string)) {
+              const monthIndex = Object.keys(monthPropertyMappingLocal).find(
+                key => monthPropertyMappingLocal[parseInt(key)] === monthKey
+              );
+              if (monthIndex !== undefined) {
+                const monthYearKey = getMonthYearKey(parseInt(monthIndex), year);
+                ensureMonthYearExists(monthYearKey);
+                pendingData[monthYearKey]["Receitas B2"].push({
+                  pharmacy,
+                  month: monthNames[parseInt(monthIndex)],
+                  year,
+                  monthYearKey,
+                  category: "Receitas B2",
+                  type: "monthly"
+                });
+              }
+            }
+          });
+        });
+      }
+
+      // Processar controles trimestrais (agora é um array por ano)
+      if (Array.isArray(pharmacy.controlesTrimestrais)) {
+        pharmacy.controlesTrimestrais.forEach(yearControl => {
+          const year = yearControl.year;
+          Object.entries(yearControl).forEach(([quarterKey, control]) => {
+            if (quarterKey === 'id' || quarterKey === 'pharmacy_id' || quarterKey === 'year' || quarterKey === 'created_at') return;
+            if (isControlPending(control as string)) {
+              const quarterNumber = Object.keys(quarterPropertyMapping).find(
+                key => quarterPropertyMapping[parseInt(key)] === quarterKey
+              );
+              if (quarterNumber !== undefined) {
+                const quarter = parseInt(quarterNumber);
+                // Mapear trimestre para meses
+                const monthsInQuarter = [
+                  [0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]
+                ];
+                monthsInQuarter[quarter - 1].forEach(monthIndex => {
+                  const monthYearKey = getMonthYearKey(monthIndex, year);
+                  ensureMonthYearExists(monthYearKey);
+                  pendingData[monthYearKey]["Trimestral"].push({
+                    pharmacy,
+                    month: monthNames[monthIndex],
+                    year,
+                    monthYearKey,
+                    category: "Trimestral",
+                    type: "quarterly",
+                    quarter
+                  });
+                });
+              }
+            }
+          });
+        });
+      }
     });
 
     // Contar total de pendências
@@ -254,18 +278,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex items-center gap-2 bg-card border rounded-md p-1 shadow-sm">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear - 1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-semibold min-w-[3rem] text-center">{selectedYear}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedYear(selectedYear + 1)}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <h1 className="text-3xl font-bold">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
