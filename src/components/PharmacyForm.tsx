@@ -114,6 +114,7 @@ const processMonthlyControl = (control: any): YearlyMonthlyControl => {
 };
 
 // Função auxiliar para garantir que os controles mensais tenham ambos os anos (anterior e atual)
+// E remove duplicatas por ano, mantendo apenas uma entrada por ano
 const ensureMonthlyControlsArray = (controls: YearlyMonthlyControl[] | null | undefined): YearlyMonthlyControl[] => {
   if (!controls || !Array.isArray(controls) || controls.length === 0) {
     return [
@@ -124,17 +125,39 @@ const ensureMonthlyControlsArray = (controls: YearlyMonthlyControl[] | null | un
 
   const processedControls = controls.map(processMonthlyControl);
 
+  // Deduplicar por ano - manter apenas a primeira ocorrência de cada ano
+  const uniqueByYear = new Map<number, YearlyMonthlyControl>();
+  for (const control of processedControls) {
+    if (!uniqueByYear.has(control.year)) {
+      uniqueByYear.set(control.year, control);
+    } else {
+      // Mesclar dados: preferir dados não-vazios
+      const existing = uniqueByYear.get(control.year)!;
+      const merged = { ...existing };
+      const months = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'] as const;
+      for (const month of months) {
+        if (!merged[month] && control[month]) {
+          merged[month] = control[month];
+        }
+      }
+      uniqueByYear.set(control.year, merged);
+    }
+  }
+
+  const deduplicatedControls = Array.from(uniqueByYear.values());
+
   // Garantir que o ano anterior e o ano atual existam
-  const years = processedControls.map(c => c.year);
+  const years = deduplicatedControls.map(c => c.year);
   if (!years.includes(previousYear)) {
-    processedControls.unshift(createEmptyMonthlyControl(previousYear));
+    deduplicatedControls.unshift(createEmptyMonthlyControl(previousYear));
   }
   if (!years.includes(currentYear)) {
-    processedControls.push(createEmptyMonthlyControl(currentYear));
+    deduplicatedControls.push(createEmptyMonthlyControl(currentYear));
   }
 
   // Ordenar por ano (mais antigo primeiro)
-  return processedControls.sort((a, b) => a.year - b.year);
+  return deduplicatedControls.sort((a, b) => a.year - b.year);
 };
 
 // Função auxiliar para processar um controle trimestral único
@@ -152,6 +175,7 @@ const processQuarterlyControl = (control: any): YearlyQuarterlyControl => {
 };
 
 // Função auxiliar para garantir que os controles trimestrais tenham ambos os anos (anterior e atual)
+// E remove duplicatas por ano, mantendo apenas uma entrada por ano
 const ensureQuarterlyControlsArray = (controls: YearlyQuarterlyControl[] | null | undefined): YearlyQuarterlyControl[] => {
   if (!controls || !Array.isArray(controls) || controls.length === 0) {
     return [
@@ -162,17 +186,38 @@ const ensureQuarterlyControlsArray = (controls: YearlyQuarterlyControl[] | null 
 
   const processedControls = controls.map(processQuarterlyControl);
 
+  // Deduplicar por ano - manter apenas a primeira ocorrência de cada ano
+  const uniqueByYear = new Map<number, YearlyQuarterlyControl>();
+  for (const control of processedControls) {
+    if (!uniqueByYear.has(control.year)) {
+      uniqueByYear.set(control.year, control);
+    } else {
+      // Mesclar dados: preferir dados não-vazios
+      const existing = uniqueByYear.get(control.year)!;
+      const merged = { ...existing };
+      const quarters = ['primeiro', 'segundo', 'terceiro', 'quarto'] as const;
+      for (const quarter of quarters) {
+        if (!merged[quarter] && control[quarter]) {
+          merged[quarter] = control[quarter];
+        }
+      }
+      uniqueByYear.set(control.year, merged);
+    }
+  }
+
+  const deduplicatedControls = Array.from(uniqueByYear.values());
+
   // Garantir que o ano anterior e o ano atual existam
-  const years = processedControls.map(c => c.year);
+  const years = deduplicatedControls.map(c => c.year);
   if (!years.includes(previousYear)) {
-    processedControls.unshift(createEmptyQuarterlyControl(previousYear));
+    deduplicatedControls.unshift(createEmptyQuarterlyControl(previousYear));
   }
   if (!years.includes(currentYear)) {
-    processedControls.push(createEmptyQuarterlyControl(currentYear));
+    deduplicatedControls.push(createEmptyQuarterlyControl(currentYear));
   }
 
   // Ordenar por ano (mais antigo primeiro)
-  return processedControls.sort((a, b) => a.year - b.year);
+  return deduplicatedControls.sort((a, b) => a.year - b.year);
 };
 
 // Função auxiliar para garantir que o endereço e seus campos sejam strings

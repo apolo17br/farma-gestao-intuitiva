@@ -71,9 +71,12 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       if (error) throw error;
 
       // Função auxiliar para processar controles mensais com ano
+      // Deduplica por ano, mantendo o registro mais completo
       const processMonthlyControls = (controls: any[]): YearlyMonthlyControl[] => {
         if (!controls || !Array.isArray(controls)) return [];
-        return controls.map(control => {
+
+        // Primeiro, mapear todos os controles
+        const mappedControls = controls.map(control => {
           const createdAt = control.created_at ? new Date(control.created_at) : new Date();
           return {
             id: control.id,
@@ -93,13 +96,38 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
             novembro: control.novembro || '',
             dezembro: control.dezembro || '',
           };
-        }).sort((a, b) => a.year - b.year); // Ordenar por ano
+        });
+
+        // Deduplicar por ano
+        const uniqueByYear = new Map<number, YearlyMonthlyControl>();
+        for (const control of mappedControls) {
+          if (!uniqueByYear.has(control.year)) {
+            uniqueByYear.set(control.year, control);
+          } else {
+            // Mesclar dados: preferir dados não-vazios
+            const existing = uniqueByYear.get(control.year)!;
+            const merged = { ...existing };
+            const months = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+              'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'] as const;
+            for (const month of months) {
+              if (!merged[month] && control[month]) {
+                merged[month] = control[month];
+              }
+            }
+            uniqueByYear.set(control.year, merged);
+          }
+        }
+
+        return Array.from(uniqueByYear.values()).sort((a, b) => a.year - b.year);
       };
 
       // Função auxiliar para processar controles trimestrais com ano
+      // Deduplica por ano, mantendo o registro mais completo
       const processQuarterlyControls = (controls: any[]): YearlyQuarterlyControl[] => {
         if (!controls || !Array.isArray(controls)) return [];
-        return controls.map(control => {
+
+        // Primeiro, mapear todos os controles
+        const mappedControls = controls.map(control => {
           const createdAt = control.created_at ? new Date(control.created_at) : new Date();
           return {
             id: control.id,
@@ -111,7 +139,28 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
             terceiro: control.terceiro || '',
             quarto: control.quarto || '',
           };
-        }).sort((a, b) => a.year - b.year); // Ordenar por ano
+        });
+
+        // Deduplicar por ano
+        const uniqueByYear = new Map<number, YearlyQuarterlyControl>();
+        for (const control of mappedControls) {
+          if (!uniqueByYear.has(control.year)) {
+            uniqueByYear.set(control.year, control);
+          } else {
+            // Mesclar dados: preferir dados não-vazios
+            const existing = uniqueByYear.get(control.year)!;
+            const merged = { ...existing };
+            const quarters = ['primeiro', 'segundo', 'terceiro', 'quarto'] as const;
+            for (const quarter of quarters) {
+              if (!merged[quarter] && control[quarter]) {
+                merged[quarter] = control[quarter];
+              }
+            }
+            uniqueByYear.set(control.year, merged);
+          }
+        }
+
+        return Array.from(uniqueByYear.values()).sort((a, b) => a.year - b.year);
       };
 
       const formattedPharmacies = (data || []).map(pharmacy => {
@@ -228,9 +277,59 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       }
 
       if (pharmacyId) {
-        // Inserir controles mensais A para cada ano
-        if (Array.isArray(newPharmacy.controlesMensaisA) && newPharmacy.controlesMensaisA.length > 0) {
-          for (const control of newPharmacy.controlesMensaisA) {
+        // Função auxiliar para deduplicar controles mensais por ano
+        const deduplicateMonthlyControls = (controls: any[]): any[] => {
+          if (!controls || !Array.isArray(controls)) return [];
+          const uniqueByYear = new Map<number, any>();
+          for (const control of controls) {
+            const year = control.year || new Date().getFullYear();
+            if (!uniqueByYear.has(year)) {
+              uniqueByYear.set(year, control);
+            } else {
+              // Mesclar dados: preferir dados não-vazios
+              const existing = uniqueByYear.get(year)!;
+              const merged = { ...existing };
+              const months = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+                'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+              for (const month of months) {
+                if (!merged[month] && control[month]) {
+                  merged[month] = control[month];
+                }
+              }
+              uniqueByYear.set(year, merged);
+            }
+          }
+          return Array.from(uniqueByYear.values());
+        };
+
+        // Função auxiliar para deduplicar controles trimestrais por ano
+        const deduplicateQuarterlyControls = (controls: any[]): any[] => {
+          if (!controls || !Array.isArray(controls)) return [];
+          const uniqueByYear = new Map<number, any>();
+          for (const control of controls) {
+            const year = control.year || new Date().getFullYear();
+            if (!uniqueByYear.has(year)) {
+              uniqueByYear.set(year, control);
+            } else {
+              // Mesclar dados: preferir dados não-vazios
+              const existing = uniqueByYear.get(year)!;
+              const merged = { ...existing };
+              const quarters = ['primeiro', 'segundo', 'terceiro', 'quarto'];
+              for (const quarter of quarters) {
+                if (!merged[quarter] && control[quarter]) {
+                  merged[quarter] = control[quarter];
+                }
+              }
+              uniqueByYear.set(year, merged);
+            }
+          }
+          return Array.from(uniqueByYear.values());
+        };
+
+        // Inserir controles mensais A para cada ano (deduplicado)
+        const uniqueControlsA = deduplicateMonthlyControls(newPharmacy.controlesMensaisA);
+        if (uniqueControlsA.length > 0) {
+          for (const control of uniqueControlsA) {
             const { id, pharmacy_id, created_at, ...controlData } = control as any;
             const { error: monthlyAError } = await supabase
               .from('monthly_controls_a')
@@ -253,9 +352,10 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           }
         }
 
-        // Inserir controles mensais B2 para cada ano
-        if (Array.isArray(newPharmacy.controlesMensaisB2) && newPharmacy.controlesMensaisB2.length > 0) {
-          for (const control of newPharmacy.controlesMensaisB2) {
+        // Inserir controles mensais B2 para cada ano (deduplicado)
+        const uniqueControlsB2 = deduplicateMonthlyControls(newPharmacy.controlesMensaisB2);
+        if (uniqueControlsB2.length > 0) {
+          for (const control of uniqueControlsB2) {
             const { id, pharmacy_id, created_at, ...controlData } = control as any;
             const { error: monthlyB2Error } = await supabase
               .from('monthly_controls_b2')
@@ -278,9 +378,10 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
           }
         }
 
-        // Inserir controles trimestrais para cada ano
-        if (Array.isArray(newPharmacy.controlesTrimestrais) && newPharmacy.controlesTrimestrais.length > 0) {
-          for (const control of newPharmacy.controlesTrimestrais) {
+        // Inserir controles trimestrais para cada ano (deduplicado)
+        const uniqueQuarterlyControls = deduplicateQuarterlyControls(newPharmacy.controlesTrimestrais);
+        if (uniqueQuarterlyControls.length > 0) {
+          for (const control of uniqueQuarterlyControls) {
             const { id, pharmacy_id, created_at, ...controlData } = control as any;
             const { error: quarterlyError } = await supabase
               .from('quarterly_controls')
@@ -416,8 +517,59 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
       if (deleteMonthlyAError) throw deleteMonthlyAError;
 
-      if (Array.isArray(updatedPharmacy.controlesMensaisA) && updatedPharmacy.controlesMensaisA.length > 0) {
-        for (const control of updatedPharmacy.controlesMensaisA) {
+      // Função auxiliar para deduplicar controles mensais por ano
+      const deduplicateMonthlyControls = (controls: any[]): any[] => {
+        if (!controls || !Array.isArray(controls)) return [];
+        const uniqueByYear = new Map<number, any>();
+        for (const control of controls) {
+          const year = control.year || new Date().getFullYear();
+          if (!uniqueByYear.has(year)) {
+            uniqueByYear.set(year, control);
+          } else {
+            // Mesclar dados: preferir dados não-vazios
+            const existing = uniqueByYear.get(year)!;
+            const merged = { ...existing };
+            const months = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+              'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            for (const month of months) {
+              if (!merged[month] && control[month]) {
+                merged[month] = control[month];
+              }
+            }
+            uniqueByYear.set(year, merged);
+          }
+        }
+        return Array.from(uniqueByYear.values());
+      };
+
+      // Função auxiliar para deduplicar controles trimestrais por ano
+      const deduplicateQuarterlyControls = (controls: any[]): any[] => {
+        if (!controls || !Array.isArray(controls)) return [];
+        const uniqueByYear = new Map<number, any>();
+        for (const control of controls) {
+          const year = control.year || new Date().getFullYear();
+          if (!uniqueByYear.has(year)) {
+            uniqueByYear.set(year, control);
+          } else {
+            // Mesclar dados: preferir dados não-vazios
+            const existing = uniqueByYear.get(year)!;
+            const merged = { ...existing };
+            const quarters = ['primeiro', 'segundo', 'terceiro', 'quarto'];
+            for (const quarter of quarters) {
+              if (!merged[quarter] && control[quarter]) {
+                merged[quarter] = control[quarter];
+              }
+            }
+            uniqueByYear.set(year, merged);
+          }
+        }
+        return Array.from(uniqueByYear.values());
+      };
+
+      // Inserir controles mensais A (deduplicados)
+      const uniqueControlsA = deduplicateMonthlyControls(updatedPharmacy.controlesMensaisA);
+      if (uniqueControlsA.length > 0) {
+        for (const control of uniqueControlsA) {
           const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
           const { error: monthlyAError } = await supabase
             .from('monthly_controls_a')
@@ -448,8 +600,10 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
       if (deleteMonthlyB2Error) throw deleteMonthlyB2Error;
 
-      if (Array.isArray(updatedPharmacy.controlesMensaisB2) && updatedPharmacy.controlesMensaisB2.length > 0) {
-        for (const control of updatedPharmacy.controlesMensaisB2) {
+      // Inserir controles mensais B2 (deduplicados)
+      const uniqueControlsB2 = deduplicateMonthlyControls(updatedPharmacy.controlesMensaisB2);
+      if (uniqueControlsB2.length > 0) {
+        for (const control of uniqueControlsB2) {
           const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
           const { error: monthlyB2Error } = await supabase
             .from('monthly_controls_b2')
@@ -480,8 +634,10 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
       if (deleteQuarterlyError) throw deleteQuarterlyError;
 
-      if (Array.isArray(updatedPharmacy.controlesTrimestrais) && updatedPharmacy.controlesTrimestrais.length > 0) {
-        for (const control of updatedPharmacy.controlesTrimestrais) {
+      // Inserir controles trimestrais (deduplicados)
+      const uniqueQuarterlyControls = deduplicateQuarterlyControls(updatedPharmacy.controlesTrimestrais);
+      if (uniqueQuarterlyControls.length > 0) {
+        for (const control of uniqueQuarterlyControls) {
           const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
           const { error: quarterlyError } = await supabase
             .from('quarterly_controls')
