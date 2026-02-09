@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatCnpjDisplay } from "../utils/formatters";
 
 const Dashboard: React.FC = () => {
   const { pharmacies, loading } = usePharmacy();
@@ -483,7 +484,7 @@ const Dashboard: React.FC = () => {
                         {pharmacy.nomeFantasia || pharmacy.razaoSocial}
                       </Link>
                       <p className="text-sm text-muted-foreground">
-                        {pharmacy.cnpj}
+                        {formatCnpjDisplay(pharmacy.cnpj)}
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground">
@@ -534,7 +535,7 @@ const Dashboard: React.FC = () => {
                         <td className="py-2 px-2">
                           {pharmacy.nomeFantasia || pharmacy.razaoSocial}
                         </td>
-                        <td className="py-2 px-2">{pharmacy.cnpj}</td>
+                        <td className="py-2 px-2">{formatCnpjDisplay(pharmacy.cnpj)}</td>
                         <td className="py-2 px-2">{pharmacy.telefone}</td>
                         <td className="py-2 px-2 text-right">
                           <Link
@@ -597,7 +598,7 @@ const Dashboard: React.FC = () => {
                       {pharmacy.nomeFantasia || pharmacy.razaoSocial}
                     </Link>
                     <p className="text-sm text-muted-foreground">
-                      {pharmacy.cnpj}
+                      {formatCnpjDisplay(pharmacy.cnpj)}
                     </p>
                   </div>
                   <div className="text-right">

@@ -21,6 +21,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Pharmacy, TechnicalSupervisor } from "../types/pharmacy.types";
+import { formatCnpjDisplay } from "../utils/formatters";
 
 const PharmacyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -136,7 +137,7 @@ const PharmacyDetail: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">CNPJ</p>
-                  <p className="font-medium">{pharmacy.cnpj}</p>
+                  <p className="font-medium">{formatCnpjDisplay(pharmacy.cnpj)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Razão Social</p>

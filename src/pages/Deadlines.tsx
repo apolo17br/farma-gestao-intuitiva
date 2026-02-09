@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Calendar, Edit, Search, Filter, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronRight, RotateCcw, BarChart3, TrendingUp } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts";
+import { formatCnpjDisplay } from "../utils/formatters";
 
 const Deadlines: React.FC = () => {
   const { pharmacies } = usePharmacy();
@@ -653,7 +654,7 @@ const Deadlines: React.FC = () => {
                                             {item.pharmacy.nomeFantasia || item.pharmacy.razaoSocial}
                                           </Link>
                                           <div className="text-sm text-muted-foreground mt-1">
-                                            CNPJ: {item.pharmacy.cnpj}
+                                            CNPJ: {formatCnpjDisplay(item.pharmacy.cnpj)}
                                           </div>
                                           <div className="mt-2">
                                             <Badge variant="destructive" className="text-xs">
@@ -769,7 +770,7 @@ const Deadlines: React.FC = () => {
                                     {item.pharmacy.nomeFantasia || item.pharmacy.razaoSocial}
                                   </Link>
                                   <div className="text-sm text-muted-foreground mt-1">
-                                    CNPJ: {item.pharmacy.cnpj}
+                                    CNPJ: {formatCnpjDisplay(item.pharmacy.cnpj)}
                                   </div>
                                   <div className="mt-2 flex items-center gap-2">
                                     <Badge variant="destructive" className="text-xs">

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertCircle, Edit, Search, Filter, ChevronDown, ChevronRight, RotateCcw, BarChart3, Users, AlertTriangle } from "lucide-react";
+import { formatCnpjDisplay } from "../utils/formatters";
 
 const PendingIssues: React.FC = () => {
   const { pharmacies } = usePharmacy();
@@ -80,15 +81,15 @@ const PendingIssues: React.FC = () => {
   const SimpleBarChart = ({ data }: { data: { [key: string]: number } }) => {
     const maxValue = Math.max(...Object.values(data));
     const entries = Object.entries(data);
-    
+
     return (
       <div className="space-y-2">
         {entries.map(([key, value]) => (
           <div key={key} className="flex items-center gap-3 text-xs">
             <span className="w-20 truncate text-left">{key}</span>
             <div className="flex-1 bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-primary h-3 rounded-full" 
+              <div
+                className="bg-primary h-3 rounded-full"
                 style={{ width: `${(value / maxValue) * 100}%` }}
               />
             </div>
@@ -134,7 +135,7 @@ const PendingIssues: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -146,7 +147,7 @@ const PendingIssues: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -189,7 +190,7 @@ const PendingIssues: React.FC = () => {
                   Limpar Filtros
                 </Button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -200,7 +201,7 @@ const PendingIssues: React.FC = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                
+
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger>
                     <SelectValue placeholder="Ordenar por" />
@@ -230,7 +231,7 @@ const PendingIssues: React.FC = () => {
               <div className="divide-y">
                 {filteredPharmacies.map((pharmacy) => {
                   const isExpanded = expandedItems.has(pharmacy.id);
-                  
+
                   return (
                     <Collapsible key={pharmacy.id} open={isExpanded} onOpenChange={() => toggleExpansion(pharmacy.id)}>
                       <CollapsibleTrigger asChild>
@@ -245,7 +246,7 @@ const PendingIssues: React.FC = () => {
                                 {pharmacy.nomeFantasia || pharmacy.razaoSocial}
                               </Link>
                               <div className="text-sm text-muted-foreground mt-1">
-                                CNPJ: {pharmacy.cnpj}
+                                CNPJ: {formatCnpjDisplay(pharmacy.cnpj)}
                               </div>
                               <div className="mt-2">
                                 <Badge variant="destructive" className="text-xs">
@@ -273,7 +274,7 @@ const PendingIssues: React.FC = () => {
                                   </div>
                                 </TooltipContent>
                               </Tooltip>
-                              
+
                               {isExpanded ? (
                                 <ChevronDown className="h-4 w-4" />
                               ) : (
@@ -283,7 +284,7 @@ const PendingIssues: React.FC = () => {
                           </div>
                         </div>
                       </CollapsibleTrigger>
-                      
+
                       <CollapsibleContent>
                         <div className="px-4 pb-4 border-t bg-muted/30">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
@@ -327,7 +328,7 @@ const PendingIssues: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-medium mb-2">Nenhuma pendência encontrada</h3>
                     <p className="text-muted-foreground">
-                      {searchTerm 
+                      {searchTerm
                         ? "Tente ajustar os filtros para ver mais resultados."
                         : "Todas as farmácias possuem responsáveis técnicos cadastrados!"
                       }

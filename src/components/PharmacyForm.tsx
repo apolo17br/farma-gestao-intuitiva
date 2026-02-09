@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePharmacy } from "../context/PharmacyContext";
 import { Pharmacy, TechnicalSupervisor, MonthlyControl, QuarterlyControl, Address, YearlyMonthlyControl, YearlyQuarterlyControl } from "../types/pharmacy.types";
@@ -9,7 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Trash2, ChevronDown, ChevronUp, CheckSquare } from "lucide-react";
+import { Trash2, ChevronDown, ChevronUp, CheckSquare, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { toast } from "@/components/ui/sonner";
+import { cleanCnpj, formatCnpj, isValidCnpjFormat } from "../utils/formatters";
 
 const emptyAddress: Address = {
   logradouro: "",
@@ -211,11 +214,73 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
   const { addPharmacy, updatePharmacy } = usePharmacy();
   const navigate = useNavigate();
 
+  // Estados para verificação de CNPJ
+  const [cnpjStatus, setCnpjStatus] = useState<'idle' | 'checking' | 'available' | 'exists' | 'invalid'>('idle');
+  const [cnpjMessage, setCnpjMessage] = useState<string>('');
+  const [checkingCnpj, setCheckingCnpj] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Função para verificar se CNPJ já existe no banco
+  const checkCnpjExists = useCallback(async (cnpj: string) => {
+    const cleanedCnpj = cleanCnpj(cnpj);
+
+    if (cleanedCnpj.length < 14) {
+      setCnpjStatus('idle');
+      setCnpjMessage('');
+      return;
+    }
+
+    if (!isValidCnpjFormat(cnpj)) {
+      setCnpjStatus('invalid');
+      setCnpjMessage('CNPJ inválido. Deve conter 14 dígitos.');
+      return;
+    }
+
+    setCheckingCnpj(true);
+    setCnpjStatus('checking');
+    setCnpjMessage('Verificando CNPJ...');
+
+    try {
+      const { data, error } = await supabase
+        .from('pharmacies')
+        .select('id, nome_fantasia')
+        .eq('cnpj', cleanedCnpj)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Erro ao verificar CNPJ:', error);
+        setCnpjStatus('idle');
+        setCnpjMessage('');
+        return;
+      }
+
+      if (data) {
+        // Se estamos editando e o CNPJ encontrado é da mesma farmácia, está ok
+        if (isEditing && pharmacy && data.id === pharmacy.id) {
+          setCnpjStatus('available');
+          setCnpjMessage('Este é o CNPJ atual da farmácia.');
+        } else {
+          setCnpjStatus('exists');
+          setCnpjMessage(`CNPJ já cadastrado: ${data.nome_fantasia || 'Farmácia existente'}`);
+        }
+      } else {
+        setCnpjStatus('available');
+        setCnpjMessage('CNPJ disponível para cadastro.');
+      }
+    } catch (err) {
+      console.error('Erro ao verificar CNPJ:', err);
+      setCnpjStatus('idle');
+      setCnpjMessage('');
+    } finally {
+      setCheckingCnpj(false);
+    }
+  }, [isEditing, pharmacy]);
+
   useEffect(() => {
     if (pharmacy) {
       setFormData((prev) => ({
         ...prev,
-        cnpj: ensureString(pharmacy.cnpj),
+        cnpj: formatCnpj(ensureString(pharmacy.cnpj)),
         razaoSocial: ensureString(pharmacy.razaoSocial),
         nomeFantasia: ensureString(pharmacy.nomeFantasia),
         telefone: ensureString(pharmacy.telefone),
@@ -232,6 +297,25 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
       setFormData({ ...emptyPharmacy, address: { ...emptyAddress } });
     }
   }, [pharmacy]);
+
+  // Função específica para lidar com mudança do CNPJ
+  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const formattedValue = formatCnpj(rawValue);
+
+    // Limitar a 18 caracteres (14 dígitos + 4 caracteres de pontuação)
+    if (formattedValue.length <= 18) {
+      setFormData((prev) => ({ ...prev, cnpj: formattedValue }));
+
+      // Verificar CNPJ quando tiver 14 dígitos
+      if (cleanCnpj(formattedValue).length === 14) {
+        checkCnpjExists(formattedValue);
+      } else {
+        setCnpjStatus('idle');
+        setCnpjMessage('');
+      }
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -399,21 +483,57 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
     return allQuarters.every(quarter => !!(control as any)[quarter]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Preparar dados para enviar (incluindo address)
-    const dataToSend = { ...formData };
+    // Verificar se o CNPJ já existe antes de enviar
+    if (cnpjStatus === 'exists') {
+      toast.error('Este CNPJ já está cadastrado no sistema. Por favor, verifique os dados.');
+      return;
+    }
 
-    if (isEditing && pharmacy) {
-      updatePharmacy({
-        ...pharmacy,
-        ...dataToSend,
-      });
-      navigate(`/farmacias/${pharmacy.id}`);
-    } else {
-      addPharmacy(dataToSend);
-      navigate("/farmacias");
+    if (cnpjStatus === 'invalid') {
+      toast.error('CNPJ inválido. Por favor, digite um CNPJ válido com 14 dígitos.');
+      return;
+    }
+
+    if (cnpjStatus === 'checking') {
+      toast.warning('Aguarde a verificação do CNPJ...');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Preparar dados para enviar (limpando o CNPJ)
+      const dataToSend = {
+        ...formData,
+        cnpj: cleanCnpj(formData.cnpj), // Enviar CNPJ sem pontuação
+      };
+
+      if (isEditing && pharmacy) {
+        await updatePharmacy({
+          ...pharmacy,
+          ...dataToSend,
+        });
+        toast.success('Farmácia atualizada com sucesso!');
+        navigate(`/farmacias/${pharmacy.id}`);
+      } else {
+        await addPharmacy(dataToSend);
+        toast.success('Farmácia cadastrada com sucesso!');
+        navigate("/farmacias");
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar farmácia:', error);
+
+      // Tratamento de erros específicos
+      if (error?.code === '23505' || error?.message?.includes('duplicate key')) {
+        toast.error('Este CNPJ já está cadastrado no sistema.');
+      } else {
+        toast.error('Erro ao salvar farmácia. Por favor, tente novamente.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -449,15 +569,46 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
               <label className="text-sm font-medium" htmlFor="cnpj">
                 CNPJ <span className="text-destructive">*</span>
               </label>
-              <Input
-                id="cnpj"
-                name="cnpj"
-                value={formData.cnpj}
-                onChange={handleChange}
-                placeholder="00.000.000/0000-00"
-                required
-              />
-              <p className="form-hint">Digite apenas os números do CNPJ</p>
+              <div className="relative">
+                <Input
+                  id="cnpj"
+                  name="cnpj"
+                  value={formData.cnpj}
+                  onChange={handleCnpjChange}
+                  placeholder="00.000.000/0000-00"
+                  required
+                  className={`pr-10 ${cnpjStatus === 'exists' || cnpjStatus === 'invalid'
+                    ? 'border-destructive focus-visible:ring-destructive'
+                    : cnpjStatus === 'available'
+                      ? 'border-green-500 focus-visible:ring-green-500'
+                      : ''
+                    }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {cnpjStatus === 'checking' && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                  {cnpjStatus === 'available' && (
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  )}
+                  {(cnpjStatus === 'exists' || cnpjStatus === 'invalid') && (
+                    <AlertCircle className="h-4 w-4 text-destructive" />
+                  )}
+                </div>
+              </div>
+              {cnpjMessage && (
+                <p className={`text-sm ${cnpjStatus === 'exists' || cnpjStatus === 'invalid'
+                  ? 'text-destructive'
+                  : cnpjStatus === 'available'
+                    ? 'text-green-600'
+                    : 'text-muted-foreground'
+                  }`}>
+                  {cnpjMessage}
+                </p>
+              )}
+              {!cnpjMessage && (
+                <p className="form-hint">O CNPJ será formatado automaticamente</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -955,11 +1106,22 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           type="button"
           variant="outline"
           onClick={() => navigate(-1)}
+          disabled={isSubmitting}
         >
           Cancelar
         </Button>
-        <Button type="submit">
-          {isEditing ? "Salvar Alterações" : "Cadastrar Farmácia"}
+        <Button
+          type="submit"
+          disabled={isSubmitting || cnpjStatus === 'exists' || cnpjStatus === 'invalid' || cnpjStatus === 'checking'}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              {isEditing ? "Salvando..." : "Cadastrando..."}
+            </>
+          ) : (
+            isEditing ? "Salvar Alterações" : "Cadastrar Farmácia"
+          )}
         </Button>
       </div>
     </form >

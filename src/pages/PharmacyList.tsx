@@ -18,6 +18,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { formatCnpjDisplay } from "../utils/formatters";
 
 const PharmacyList: React.FC = () => {
   const { pharmacies, deletePharmacy, filterTerm, setFilterTerm } = usePharmacy();
@@ -25,7 +26,7 @@ const PharmacyList: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-  
+
   // Estados para filtros avançados
   const [advancedFilters, setAdvancedFilters] = useState({
     missingFields: [] as string[],
@@ -50,7 +51,7 @@ const PharmacyList: React.FC = () => {
   // Salvar no histórico quando o usuário realizar uma busca
   const handleSearch = (term: string) => {
     setFilterTerm(term);
-    
+
     if (term.trim() !== "" && !searchHistory.includes(term)) {
       const newHistory = [term, ...searchHistory].slice(0, 5);
       setSearchHistory(newHistory);
@@ -86,7 +87,7 @@ const PharmacyList: React.FC = () => {
         pharmacy.cnpj?.includes(filterTerm) ||
         pharmacy.alvara?.toLowerCase().includes(searchLower) ||
         pharmacy.email?.toLowerCase().includes(searchLower) ||
-        pharmacy.responsaveisTecnicos?.some(supervisor => 
+        pharmacy.responsaveisTecnicos?.some(supervisor =>
           supervisor.nome?.toLowerCase().includes(searchLower) ||
           supervisor.crf?.includes(filterTerm)
         )
@@ -105,9 +106,9 @@ const PharmacyList: React.FC = () => {
             case "alvara":
               return !pharmacy.alvara || pharmacy.alvara.trim() === "";
             case "endereco":
-              return !pharmacy.address || 
-                (!pharmacy.address.logradouro && !pharmacy.address.bairro && 
-                 !pharmacy.address.cidade && !pharmacy.address.estado);
+              return !pharmacy.address ||
+                (!pharmacy.address.logradouro && !pharmacy.address.bairro &&
+                  !pharmacy.address.cidade && !pharmacy.address.estado);
             default:
               return false;
           }
@@ -120,12 +121,12 @@ const PharmacyList: React.FC = () => {
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
-      
+
       filtered = filtered.filter(pharmacy => {
         const pharmacyDate = new Date(pharmacy.dataCadastro);
         const pharmacyMonth = pharmacyDate.getMonth();
         const pharmacyYear = pharmacyDate.getFullYear();
-        
+
         switch (advancedFilters.dateRange) {
           case "thisMonth":
             return pharmacyMonth === currentMonth && pharmacyYear === currentYear;
@@ -149,7 +150,7 @@ const PharmacyList: React.FC = () => {
         pharmacy.address?.bairro?.toLowerCase().includes(advancedFilters.addressFilter.bairro.toLowerCase())
       );
     }
-    
+
     if (advancedFilters.addressFilter.rua.trim()) {
       filtered = filtered.filter(pharmacy =>
         pharmacy.address?.logradouro?.toLowerCase().includes(advancedFilters.addressFilter.rua.toLowerCase())
@@ -166,7 +167,7 @@ const PharmacyList: React.FC = () => {
     // Ordenação
     filtered.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (advancedFilters.sortBy) {
         case "name":
           comparison = (a.nomeFantasia || a.razaoSocial).localeCompare(b.nomeFantasia || b.razaoSocial);
@@ -178,13 +179,13 @@ const PharmacyList: React.FC = () => {
           comparison = new Date(a.dataCadastro).getTime() - new Date(b.dataCadastro).getTime();
           break;
         case "update":
-          comparison = new Date(a.ultimaAtualizacao || a.dataCadastro).getTime() - 
-                      new Date(b.ultimaAtualizacao || b.dataCadastro).getTime();
+          comparison = new Date(a.ultimaAtualizacao || a.dataCadastro).getTime() -
+            new Date(b.ultimaAtualizacao || b.dataCadastro).getTime();
           break;
         default:
           comparison = 0;
       }
-      
+
       return advancedFilters.sortOrder === "desc" ? -comparison : comparison;
     });
 
@@ -254,7 +255,7 @@ const PharmacyList: React.FC = () => {
                 </Button>
               </div>
             </div>
-            
+
             <div className="relative" ref={searchRef}>
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -278,12 +279,12 @@ const PharmacyList: React.FC = () => {
                   <X className="h-4 w-4" />
                 </button>
               )}
-              
+
               {showHistory && searchHistory.length > 0 && (
                 <div className="absolute z-10 mt-1 w-full bg-card border rounded-md shadow-sm">
                   <ul className="py-1">
                     {searchHistory.map((term, index) => (
-                      <li 
+                      <li
                         key={index}
                         className="px-3 py-2 hover:bg-muted cursor-pointer flex items-center"
                         onClick={() => handleSearch(term)}
@@ -327,7 +328,7 @@ const PharmacyList: React.FC = () => {
                     {/* Filtro por data */}
                     <div>
                       <label className="text-sm font-medium mb-2 block">Período de Cadastro</label>
-                      <Select value={advancedFilters.dateRange} onValueChange={(value) => 
+                      <Select value={advancedFilters.dateRange} onValueChange={(value) =>
                         setAdvancedFilters(prev => ({ ...prev, dateRange: value }))
                       }>
                         <SelectTrigger>
@@ -347,7 +348,7 @@ const PharmacyList: React.FC = () => {
                     <div>
                       <label className="text-sm font-medium mb-2 block">Ordenar por</label>
                       <div className="space-y-2">
-                        <Select value={advancedFilters.sortBy} onValueChange={(value) => 
+                        <Select value={advancedFilters.sortBy} onValueChange={(value) =>
                           setAdvancedFilters(prev => ({ ...prev, sortBy: value }))
                         }>
                           <SelectTrigger>
@@ -360,7 +361,7 @@ const PharmacyList: React.FC = () => {
                             <SelectItem value="update">Data de atualização</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Select value={advancedFilters.sortOrder} onValueChange={(value) => 
+                        <Select value={advancedFilters.sortOrder} onValueChange={(value) =>
                           setAdvancedFilters(prev => ({ ...prev, sortOrder: value }))
                         }>
                           <SelectTrigger>
@@ -430,7 +431,7 @@ const PharmacyList: React.FC = () => {
                         </h3>
                       </Link>
                       <p className="text-sm text-muted-foreground">
-                        CNPJ: {pharmacy.cnpj}
+                        CNPJ: {formatCnpjDisplay(pharmacy.cnpj)}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -457,7 +458,7 @@ const PharmacyList: React.FC = () => {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction 
+                            <AlertDialogAction
                               onClick={() => deletePharmacy(pharmacy.id)}
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
@@ -491,9 +492,9 @@ const PharmacyList: React.FC = () => {
             <div className="space-y-2">
               <p className="text-lg font-medium">Nenhuma farmácia encontrada</p>
               <p className="text-muted-foreground">
-                Tente outro termo de busca ou 
-                <Button 
-                  variant="link" 
+                Tente outro termo de busca ou
+                <Button
+                  variant="link"
                   onClick={() => setFilterTerm("")}
                   className="px-1"
                 >
