@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit, Trash2, ArrowLeft, Check, MapPin } from "lucide-react";
+import { Edit, Trash2, ArrowLeft, Check, MapPin, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -26,6 +27,7 @@ const PharmacyDetail: React.FC = () => {
   const navigate = useNavigate();
   const { getPharmacy, deletePharmacy, loading } = usePharmacy();
   const [pharmacy, setPharmacy] = useState<Pharmacy | null>(null);
+  const currentYear = new Date().getFullYear();
 
   useEffect(() => {
     const fetchPharmacy = async () => {
@@ -244,26 +246,54 @@ const PharmacyDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               {pharmacy.controlesMensaisA && pharmacy.controlesMensaisA.length > 0 ? (
-                pharmacy.controlesMensaisA.map((yearControl) => (
-                  <div key={yearControl.year} className="mb-6 last:mb-0">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Ano {yearControl.year}</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {months.map((month) => (
-                        <div key={month.key} className="flex items-center gap-2">
-                          <div className={`h-4 w-4 rounded-sm border ${yearControl[month.key as keyof typeof yearControl]
-                            ? 'bg-primary border-primary'
-                            : 'border-gray-300'
-                            }`}>
-                            {yearControl[month.key as keyof typeof yearControl] && (
-                              <Check className="h-4 w-4 text-primary-foreground" />
-                            )}
-                          </div>
-                          <span className="text-sm">{month.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
+                <div className="space-y-3">
+                  {pharmacy.controlesMensaisA
+                    .slice()
+                    .sort((a, b) => b.year - a.year)
+                    .map((yearControl) => {
+                      const isCurrentYear = yearControl.year === currentYear;
+                      return (
+                        <Collapsible
+                          key={yearControl.year}
+                          defaultOpen={isCurrentYear}
+                          className="border rounded-lg"
+                        >
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                              <h4 className="text-sm font-medium">
+                                Ano {yearControl.year}
+                                {isCurrentYear && (
+                                  <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                    Atual
+                                  </span>
+                                )}
+                              </h4>
+                              <ChevronDown className="h-4 w-4 transition-transform ui-open:rotate-180" />
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="p-3 pt-0">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {months.map((month) => (
+                                  <div key={month.key} className="flex items-center gap-2">
+                                    <div className={`h-4 w-4 rounded-sm border ${yearControl[month.key as keyof typeof yearControl]
+                                      ? 'bg-primary border-primary'
+                                      : 'border-gray-300'
+                                      }`}>
+                                      {yearControl[month.key as keyof typeof yearControl] && (
+                                        <Check className="h-4 w-4 text-primary-foreground" />
+                                      )}
+                                    </div>
+                                    <span className="text-sm">{month.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhum controle cadastrado</p>
               )}
@@ -277,26 +307,54 @@ const PharmacyDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               {pharmacy.controlesMensaisB2 && pharmacy.controlesMensaisB2.length > 0 ? (
-                pharmacy.controlesMensaisB2.map((yearControl) => (
-                  <div key={yearControl.year} className="mb-6 last:mb-0">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Ano {yearControl.year}</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                      {months.map((month) => (
-                        <div key={month.key} className="flex items-center gap-2">
-                          <div className={`h-4 w-4 rounded-sm border ${yearControl[month.key as keyof typeof yearControl]
-                            ? 'bg-primary border-primary'
-                            : 'border-gray-300'
-                            }`}>
-                            {yearControl[month.key as keyof typeof yearControl] && (
-                              <Check className="h-4 w-4 text-primary-foreground" />
-                            )}
-                          </div>
-                          <span className="text-sm">{month.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
+                <div className="space-y-3">
+                  {pharmacy.controlesMensaisB2
+                    .slice()
+                    .sort((a, b) => b.year - a.year)
+                    .map((yearControl) => {
+                      const isCurrentYear = yearControl.year === currentYear;
+                      return (
+                        <Collapsible
+                          key={yearControl.year}
+                          defaultOpen={isCurrentYear}
+                          className="border rounded-lg"
+                        >
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                              <h4 className="text-sm font-medium">
+                                Ano {yearControl.year}
+                                {isCurrentYear && (
+                                  <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                    Atual
+                                  </span>
+                                )}
+                              </h4>
+                              <ChevronDown className="h-4 w-4 transition-transform ui-open:rotate-180" />
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="p-3 pt-0">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {months.map((month) => (
+                                  <div key={month.key} className="flex items-center gap-2">
+                                    <div className={`h-4 w-4 rounded-sm border ${yearControl[month.key as keyof typeof yearControl]
+                                      ? 'bg-primary border-primary'
+                                      : 'border-gray-300'
+                                      }`}>
+                                      {yearControl[month.key as keyof typeof yearControl] && (
+                                        <Check className="h-4 w-4 text-primary-foreground" />
+                                      )}
+                                    </div>
+                                    <span className="text-sm">{month.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhum controle cadastrado</p>
               )}
@@ -310,26 +368,54 @@ const PharmacyDetail: React.FC = () => {
             </CardHeader>
             <CardContent>
               {pharmacy.controlesTrimestrais && pharmacy.controlesTrimestrais.length > 0 ? (
-                pharmacy.controlesTrimestrais.map((yearControl) => (
-                  <div key={yearControl.year} className="mb-6 last:mb-0">
-                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Ano {yearControl.year}</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {quarters.map((quarter) => (
-                        <div key={quarter.key} className="flex items-center gap-2">
-                          <div className={`h-4 w-4 rounded-sm border ${yearControl[quarter.key as keyof typeof yearControl]
-                            ? 'bg-primary border-primary'
-                            : 'border-gray-300'
-                            }`}>
-                            {yearControl[quarter.key as keyof typeof yearControl] && (
-                              <Check className="h-4 w-4 text-primary-foreground" />
-                            )}
-                          </div>
-                          <span className="text-sm">{quarter.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
+                <div className="space-y-3">
+                  {pharmacy.controlesTrimestrais
+                    .slice()
+                    .sort((a, b) => b.year - a.year)
+                    .map((yearControl) => {
+                      const isCurrentYear = yearControl.year === currentYear;
+                      return (
+                        <Collapsible
+                          key={yearControl.year}
+                          defaultOpen={isCurrentYear}
+                          className="border rounded-lg"
+                        >
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                              <h4 className="text-sm font-medium">
+                                Ano {yearControl.year}
+                                {isCurrentYear && (
+                                  <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                    Atual
+                                  </span>
+                                )}
+                              </h4>
+                              <ChevronDown className="h-4 w-4 transition-transform ui-open:rotate-180" />
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="p-3 pt-0">
+                              <div className="grid grid-cols-2 gap-4">
+                                {quarters.map((quarter) => (
+                                  <div key={quarter.key} className="flex items-center gap-2">
+                                    <div className={`h-4 w-4 rounded-sm border ${yearControl[quarter.key as keyof typeof yearControl]
+                                      ? 'bg-primary border-primary'
+                                      : 'border-gray-300'
+                                      }`}>
+                                      {yearControl[quarter.key as keyof typeof yearControl] && (
+                                        <Check className="h-4 w-4 text-primary-foreground" />
+                                      )}
+                                    </div>
+                                    <span className="text-sm">{quarter.label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Nenhum controle cadastrado</p>
               )}

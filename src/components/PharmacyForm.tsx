@@ -5,10 +5,11 @@ import { Pharmacy, TechnicalSupervisor, MonthlyControl, QuarterlyControl, Addres
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Trash2, ChevronDown, ChevronUp, CheckSquare } from "lucide-react";
 
 const emptyAddress: Address = {
   logradouro: "",
@@ -20,10 +21,11 @@ const emptyAddress: Address = {
   complemento: "",
 };
 
-// Ano atual para novos controles
+// Ano atual e anterior para controles
 const currentYear = new Date().getFullYear();
+const previousYear = currentYear - 1;
 
-// Controle mensal vazio para o ano atual
+// Controle mensal vazio para um determinado ano
 const createEmptyMonthlyControl = (year: number): YearlyMonthlyControl => ({
   year,
   janeiro: "",
@@ -40,7 +42,7 @@ const createEmptyMonthlyControl = (year: number): YearlyMonthlyControl => ({
   dezembro: "",
 });
 
-// Controle trimestral vazio para o ano atual
+// Controle trimestral vazio para um determinado ano
 const createEmptyQuarterlyControl = (year: number): YearlyQuarterlyControl => ({
   year,
   primeiro: "",
@@ -49,6 +51,7 @@ const createEmptyQuarterlyControl = (year: number): YearlyQuarterlyControl => ({
   quarto: "",
 });
 
+// emptyPharmacy agora inclui controles para o ano anterior E o ano atual
 const emptyPharmacy = {
   cnpj: "",
   razaoSocial: "",
@@ -57,9 +60,18 @@ const emptyPharmacy = {
   alvara: "",
   email: "",
   responsaveisTecnicos: [{ nome: "", crf: "" }],
-  controlesMensaisA: [createEmptyMonthlyControl(currentYear)],
-  controlesMensaisB2: [createEmptyMonthlyControl(currentYear)],
-  controlesTrimestrais: [createEmptyQuarterlyControl(currentYear)],
+  controlesMensaisA: [
+    createEmptyMonthlyControl(previousYear),
+    createEmptyMonthlyControl(currentYear)
+  ],
+  controlesMensaisB2: [
+    createEmptyMonthlyControl(previousYear),
+    createEmptyMonthlyControl(currentYear)
+  ],
+  controlesTrimestrais: [
+    createEmptyQuarterlyControl(previousYear),
+    createEmptyQuarterlyControl(currentYear)
+  ],
   observacoes: "",
   address: { ...emptyAddress },
 };
@@ -98,12 +110,28 @@ const processMonthlyControl = (control: any): YearlyMonthlyControl => {
   };
 };
 
-// Função auxiliar para garantir que os controles mensais não sejam null/undefined (agora trabalha com arrays)
+// Função auxiliar para garantir que os controles mensais tenham ambos os anos (anterior e atual)
 const ensureMonthlyControlsArray = (controls: YearlyMonthlyControl[] | null | undefined): YearlyMonthlyControl[] => {
   if (!controls || !Array.isArray(controls) || controls.length === 0) {
-    return [createEmptyMonthlyControl(currentYear)];
+    return [
+      createEmptyMonthlyControl(previousYear),
+      createEmptyMonthlyControl(currentYear)
+    ];
   }
-  return controls.map(processMonthlyControl);
+
+  const processedControls = controls.map(processMonthlyControl);
+
+  // Garantir que o ano anterior e o ano atual existam
+  const years = processedControls.map(c => c.year);
+  if (!years.includes(previousYear)) {
+    processedControls.unshift(createEmptyMonthlyControl(previousYear));
+  }
+  if (!years.includes(currentYear)) {
+    processedControls.push(createEmptyMonthlyControl(currentYear));
+  }
+
+  // Ordenar por ano (mais antigo primeiro)
+  return processedControls.sort((a, b) => a.year - b.year);
 };
 
 // Função auxiliar para processar um controle trimestral único
@@ -120,12 +148,28 @@ const processQuarterlyControl = (control: any): YearlyQuarterlyControl => {
   };
 };
 
-// Função auxiliar para garantir que os controles trimestrais não sejam null/undefined (agora trabalha com arrays)
+// Função auxiliar para garantir que os controles trimestrais tenham ambos os anos (anterior e atual)
 const ensureQuarterlyControlsArray = (controls: YearlyQuarterlyControl[] | null | undefined): YearlyQuarterlyControl[] => {
   if (!controls || !Array.isArray(controls) || controls.length === 0) {
-    return [createEmptyQuarterlyControl(currentYear)];
+    return [
+      createEmptyQuarterlyControl(previousYear),
+      createEmptyQuarterlyControl(currentYear)
+    ];
   }
-  return controls.map(processQuarterlyControl);
+
+  const processedControls = controls.map(processQuarterlyControl);
+
+  // Garantir que o ano anterior e o ano atual existam
+  const years = processedControls.map(c => c.year);
+  if (!years.includes(previousYear)) {
+    processedControls.unshift(createEmptyQuarterlyControl(previousYear));
+  }
+  if (!years.includes(currentYear)) {
+    processedControls.push(createEmptyQuarterlyControl(currentYear));
+  }
+
+  // Ordenar por ano (mais antigo primeiro)
+  return processedControls.sort((a, b) => a.year - b.year);
 };
 
 // Função auxiliar para garantir que o endereço e seus campos sejam strings
@@ -286,6 +330,73 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
         controlesTrimestrais: newControls,
       };
     });
+  };
+
+  // Função para marcar todos os meses de um ano específico (Receitas A ou B2)
+  const handleMarkAllMonths = (type: 'A' | 'B2', yearIndex: number, markAll: boolean) => {
+    const allMonths = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+    if (type === 'A') {
+      setFormData((prev) => {
+        const newControls = [...prev.controlesMensaisA];
+        const updatedControl = { ...newControls[yearIndex] };
+        allMonths.forEach(month => {
+          (updatedControl as any)[month] = markAll ? "realizado" : "";
+        });
+        newControls[yearIndex] = updatedControl;
+        return {
+          ...prev,
+          controlesMensaisA: newControls,
+        };
+      });
+    } else {
+      setFormData((prev) => {
+        const newControls = [...prev.controlesMensaisB2];
+        const updatedControl = { ...newControls[yearIndex] };
+        allMonths.forEach(month => {
+          (updatedControl as any)[month] = markAll ? "realizado" : "";
+        });
+        newControls[yearIndex] = updatedControl;
+        return {
+          ...prev,
+          controlesMensaisB2: newControls,
+        };
+      });
+    }
+  };
+
+  // Função para marcar todos os trimestres de um ano específico
+  const handleMarkAllQuarters = (yearIndex: number, markAll: boolean) => {
+    const allQuarters = ['primeiro', 'segundo', 'terceiro', 'quarto'];
+
+    setFormData((prev) => {
+      const newControls = [...prev.controlesTrimestrais];
+      const updatedControl = { ...newControls[yearIndex] };
+      allQuarters.forEach(quarter => {
+        (updatedControl as any)[quarter] = markAll ? "realizado" : "";
+      });
+      newControls[yearIndex] = updatedControl;
+      return {
+        ...prev,
+        controlesTrimestrais: newControls,
+      };
+    });
+  };
+
+  // Verificar se todos os meses de um ano estão marcados
+  const areAllMonthsMarked = (type: 'A' | 'B2', yearIndex: number): boolean => {
+    const allMonths = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const control = type === 'A' ? formData.controlesMensaisA[yearIndex] : formData.controlesMensaisB2[yearIndex];
+    return allMonths.every(month => !!(control as any)[month]);
+  };
+
+  // Verificar se todos os trimestres de um ano estão marcados
+  const areAllQuartersMarked = (yearIndex: number): boolean => {
+    const allQuarters = ['primeiro', 'segundo', 'terceiro', 'quarto'];
+    const control = formData.controlesTrimestrais[yearIndex];
+    return allQuarters.every(quarter => !!(control as any)[quarter]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -589,32 +700,78 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           <h3 className="text-lg font-semibold mb-4">
             Controle Mensal de RMNRs - Receitas A
           </h3>
-          {formData.controlesMensaisA.map((yearControl, yearIndex) => (
-            <div key={yearControl.year || yearIndex} className="mb-6 last:mb-0">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                Ano {yearControl.year}
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {months.map((month) => (
-                  <div key={month.key} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`monthly-a-${yearControl.year}-${month.key}`}
-                      checked={!!(yearControl as any)[month.key]}
-                      onCheckedChange={(checked) =>
-                        handleMonthlyControlChange('A', yearIndex, month.key, checked as boolean)
-                      }
-                    />
-                    <label
-                      htmlFor={`monthly-a-${yearControl.year}-${month.key}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {month.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="space-y-3">
+            {formData.controlesMensaisA
+              .slice() // Criar cópia para não mutar o original
+              .sort((a, b) => b.year - a.year) // Ordenar do mais recente para o mais antigo
+              .map((yearControl, sortedIndex) => {
+                // Encontrar o índice original para as funções de atualização
+                const yearIndex = formData.controlesMensaisA.findIndex(c => c.year === yearControl.year);
+                const isCurrentYear = yearControl.year === currentYear;
+
+                return (
+                  <Collapsible
+                    key={yearControl.year}
+                    defaultOpen={isCurrentYear}
+                    className="border rounded-lg"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium">
+                            Ano {yearControl.year}
+                            {isCurrentYear && (
+                              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                Atual
+                              </span>
+                            )}
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAllMonths('A', yearIndex, !areAllMonthsMarked('A', yearIndex));
+                            }}
+                          >
+                            <CheckSquare className="h-3 w-3 mr-1" />
+                            {areAllMonthsMarked('A', yearIndex) ? "Desmarcar tudo" : "Marcar tudo"}
+                          </Button>
+                          <ChevronDown className="h-4 w-4 transition-transform ui-open:rotate-180" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="p-3 pt-0">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {months.map((month) => (
+                            <div key={month.key} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={`monthly-a-${yearControl.year}-${month.key}`}
+                                checked={!!(yearControl as any)[month.key]}
+                                onCheckedChange={(checked) =>
+                                  handleMonthlyControlChange('A', yearIndex, month.key, checked as boolean)
+                                }
+                              />
+                              <label
+                                htmlFor={`monthly-a-${yearControl.year}-${month.key}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              >
+                                {month.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+          </div>
         </CardContent>
       </Card>
 
@@ -623,64 +780,154 @@ const PharmacyForm: React.FC<PharmacyFormProps> = ({ pharmacy, isEditing = false
           <h3 className="text-lg font-semibold mb-4">
             Controle Mensal de RMNRs - Receitas B2
           </h3>
-          {formData.controlesMensaisB2.map((yearControl, yearIndex) => (
-            <div key={yearControl.year || yearIndex} className="mb-6 last:mb-0">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                Ano {yearControl.year}
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {months.map((month) => (
-                  <div key={month.key} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`monthly-b2-${yearControl.year}-${month.key}`}
-                      checked={!!(yearControl as any)[month.key]}
-                      onCheckedChange={(checked) =>
-                        handleMonthlyControlChange('B2', yearIndex, month.key, checked as boolean)
-                      }
-                    />
-                    <label
-                      htmlFor={`monthly-b2-${yearControl.year}-${month.key}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {month.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="space-y-3">
+            {formData.controlesMensaisB2
+              .slice()
+              .sort((a, b) => b.year - a.year)
+              .map((yearControl, sortedIndex) => {
+                const yearIndex = formData.controlesMensaisB2.findIndex(c => c.year === yearControl.year);
+                const isCurrentYear = yearControl.year === currentYear;
+
+                return (
+                  <Collapsible
+                    key={yearControl.year}
+                    defaultOpen={isCurrentYear}
+                    className="border rounded-lg"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium">
+                            Ano {yearControl.year}
+                            {isCurrentYear && (
+                              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                Atual
+                              </span>
+                            )}
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAllMonths('B2', yearIndex, !areAllMonthsMarked('B2', yearIndex));
+                            }}
+                          >
+                            <CheckSquare className="h-3 w-3 mr-1" />
+                            {areAllMonthsMarked('B2', yearIndex) ? "Desmarcar tudo" : "Marcar tudo"}
+                          </Button>
+                          <ChevronDown className="h-4 w-4 transition-transform ui-open:rotate-180" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="p-3 pt-0">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {months.map((month) => (
+                            <div key={month.key} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={`monthly-b2-${yearControl.year}-${month.key}`}
+                                checked={!!(yearControl as any)[month.key]}
+                                onCheckedChange={(checked) =>
+                                  handleMonthlyControlChange('B2', yearIndex, month.key, checked as boolean)
+                                }
+                              />
+                              <label
+                                htmlFor={`monthly-b2-${yearControl.year}-${month.key}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              >
+                                {month.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardContent className="p-6">
           <h3 className="text-lg font-semibold mb-4">Controle Trimestral</h3>
-          {formData.controlesTrimestrais.map((yearControl, yearIndex) => (
-            <div key={yearControl.year || yearIndex} className="mb-6 last:mb-0">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                Ano {yearControl.year}
-              </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {quarters.map((quarter) => (
-                  <div key={quarter.key} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`quarterly-${yearControl.year}-${quarter.key}`}
-                      checked={!!(yearControl as any)[quarter.key]}
-                      onCheckedChange={(checked) =>
-                        handleQuarterlyControlChange(yearIndex, quarter.key, checked as boolean)
-                      }
-                    />
-                    <label
-                      htmlFor={`quarterly-${yearControl.year}-${quarter.key}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {quarter.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="space-y-3">
+            {formData.controlesTrimestrais
+              .slice()
+              .sort((a, b) => b.year - a.year)
+              .map((yearControl, sortedIndex) => {
+                const yearIndex = formData.controlesTrimestrais.findIndex(c => c.year === yearControl.year);
+                const isCurrentYear = yearControl.year === currentYear;
+
+                return (
+                  <Collapsible
+                    key={yearControl.year}
+                    defaultOpen={isCurrentYear}
+                    className="border rounded-lg"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium">
+                            Ano {yearControl.year}
+                            {isCurrentYear && (
+                              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                Atual
+                              </span>
+                            )}
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAllQuarters(yearIndex, !areAllQuartersMarked(yearIndex));
+                            }}
+                          >
+                            <CheckSquare className="h-3 w-3 mr-1" />
+                            {areAllQuartersMarked(yearIndex) ? "Desmarcar tudo" : "Marcar tudo"}
+                          </Button>
+                          <ChevronDown className="h-4 w-4 transition-transform ui-open:rotate-180" />
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="p-3 pt-0">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {quarters.map((quarter) => (
+                            <div key={quarter.key} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={`quarterly-${yearControl.year}-${quarter.key}`}
+                                checked={!!(yearControl as any)[quarter.key]}
+                                onCheckedChange={(checked) =>
+                                  handleQuarterlyControlChange(yearIndex, quarter.key, checked as boolean)
+                                }
+                              />
+                              <label
+                                htmlFor={`quarterly-${yearControl.year}-${quarter.key}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                              >
+                                {quarter.label}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+          </div>
         </CardContent>
       </Card>
 
