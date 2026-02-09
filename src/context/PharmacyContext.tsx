@@ -228,20 +228,72 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       }
 
       if (pharmacyId) {
-        const { error: monthlyAError } = await supabase
-          .from('monthly_controls_a')
-          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisA });
-        if (monthlyAError) throw monthlyAError;
+        // Inserir controles mensais A para cada ano
+        if (Array.isArray(newPharmacy.controlesMensaisA) && newPharmacy.controlesMensaisA.length > 0) {
+          for (const control of newPharmacy.controlesMensaisA) {
+            const { id, pharmacy_id, created_at, ...controlData } = control as any;
+            const { error: monthlyAError } = await supabase
+              .from('monthly_controls_a')
+              .insert({
+                pharmacy_id: pharmacyId,
+                janeiro: controlData.janeiro || '',
+                fevereiro: controlData.fevereiro || '',
+                marco: controlData.marco || '',
+                abril: controlData.abril || '',
+                maio: controlData.maio || '',
+                junho: controlData.junho || '',
+                julho: controlData.julho || '',
+                agosto: controlData.agosto || '',
+                setembro: controlData.setembro || '',
+                outubro: controlData.outubro || '',
+                novembro: controlData.novembro || '',
+                dezembro: controlData.dezembro || '',
+              });
+            if (monthlyAError) throw monthlyAError;
+          }
+        }
 
-        const { error: monthlyB2Error } = await supabase
-          .from('monthly_controls_b2')
-          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesMensaisB2 });
-        if (monthlyB2Error) throw monthlyB2Error;
+        // Inserir controles mensais B2 para cada ano
+        if (Array.isArray(newPharmacy.controlesMensaisB2) && newPharmacy.controlesMensaisB2.length > 0) {
+          for (const control of newPharmacy.controlesMensaisB2) {
+            const { id, pharmacy_id, created_at, ...controlData } = control as any;
+            const { error: monthlyB2Error } = await supabase
+              .from('monthly_controls_b2')
+              .insert({
+                pharmacy_id: pharmacyId,
+                janeiro: controlData.janeiro || '',
+                fevereiro: controlData.fevereiro || '',
+                marco: controlData.marco || '',
+                abril: controlData.abril || '',
+                maio: controlData.maio || '',
+                junho: controlData.junho || '',
+                julho: controlData.julho || '',
+                agosto: controlData.agosto || '',
+                setembro: controlData.setembro || '',
+                outubro: controlData.outubro || '',
+                novembro: controlData.novembro || '',
+                dezembro: controlData.dezembro || '',
+              });
+            if (monthlyB2Error) throw monthlyB2Error;
+          }
+        }
 
-        const { error: quarterlyError } = await supabase
-          .from('quarterly_controls')
-          .insert({ pharmacy_id: pharmacyId, ...newPharmacy.controlesTrimestrais });
-        if (quarterlyError) throw quarterlyError;
+        // Inserir controles trimestrais para cada ano
+        if (Array.isArray(newPharmacy.controlesTrimestrais) && newPharmacy.controlesTrimestrais.length > 0) {
+          for (const control of newPharmacy.controlesTrimestrais) {
+            const { id, pharmacy_id, created_at, ...controlData } = control as any;
+            const { error: quarterlyError } = await supabase
+              .from('quarterly_controls')
+              .insert({
+                pharmacy_id: pharmacyId,
+                primeiro: controlData.primeiro || '',
+                segundo: controlData.segundo || '',
+                terceiro: controlData.terceiro || '',
+                quarto: controlData.quarto || '',
+              });
+            if (quarterlyError) throw quarterlyError;
+          }
+        }
       }
 
       await fetchPharmacies();
@@ -356,73 +408,92 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
         if (deleteAddressError) throw deleteAddressError;
       }
 
-      const { data: existingMonthlyA, error: checkMonthlyAError } = await supabase
+      // Atualizar controles mensais A - deletar existentes e inserir novos
+      const { error: deleteMonthlyAError } = await supabase
         .from('monthly_controls_a')
-        .select('id')
-        .eq('pharmacy_id', pharmacyId)
-        .maybeSingle();
+        .delete()
+        .eq('pharmacy_id', pharmacyId);
 
-      if (checkMonthlyAError && checkMonthlyAError.code !== 'PGRST116') {
-        throw checkMonthlyAError;
+      if (deleteMonthlyAError) throw deleteMonthlyAError;
+
+      if (Array.isArray(updatedPharmacy.controlesMensaisA) && updatedPharmacy.controlesMensaisA.length > 0) {
+        for (const control of updatedPharmacy.controlesMensaisA) {
+          const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
+          const { error: monthlyAError } = await supabase
+            .from('monthly_controls_a')
+            .insert({
+              pharmacy_id: pharmacyId,
+              janeiro: controlData.janeiro || '',
+              fevereiro: controlData.fevereiro || '',
+              marco: controlData.marco || '',
+              abril: controlData.abril || '',
+              maio: controlData.maio || '',
+              junho: controlData.junho || '',
+              julho: controlData.julho || '',
+              agosto: controlData.agosto || '',
+              setembro: controlData.setembro || '',
+              outubro: controlData.outubro || '',
+              novembro: controlData.novembro || '',
+              dezembro: controlData.dezembro || '',
+            });
+          if (monthlyAError) throw monthlyAError;
+        }
       }
 
-      if (existingMonthlyA) {
-        const { error: monthlyAError } = await supabase
-          .from('monthly_controls_a')
-          .update(updatedPharmacy.controlesMensaisA)
-          .eq('pharmacy_id', pharmacyId);
-        if (monthlyAError) throw monthlyAError;
-      } else {
-        const { error: insertMonthlyAError } = await supabase
-          .from('monthly_controls_a')
-          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisA });
-        if (insertMonthlyAError) throw insertMonthlyAError;
-      }
-
-      const { data: existingMonthlyB2, error: checkMonthlyB2Error } = await supabase
+      // Atualizar controles mensais B2 - deletar existentes e inserir novos
+      const { error: deleteMonthlyB2Error } = await supabase
         .from('monthly_controls_b2')
-        .select('id')
-        .eq('pharmacy_id', pharmacyId)
-        .maybeSingle();
+        .delete()
+        .eq('pharmacy_id', pharmacyId);
 
-      if (checkMonthlyB2Error && checkMonthlyB2Error.code !== 'PGRST116') {
-        throw checkMonthlyB2Error;
+      if (deleteMonthlyB2Error) throw deleteMonthlyB2Error;
+
+      if (Array.isArray(updatedPharmacy.controlesMensaisB2) && updatedPharmacy.controlesMensaisB2.length > 0) {
+        for (const control of updatedPharmacy.controlesMensaisB2) {
+          const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
+          const { error: monthlyB2Error } = await supabase
+            .from('monthly_controls_b2')
+            .insert({
+              pharmacy_id: pharmacyId,
+              janeiro: controlData.janeiro || '',
+              fevereiro: controlData.fevereiro || '',
+              marco: controlData.marco || '',
+              abril: controlData.abril || '',
+              maio: controlData.maio || '',
+              junho: controlData.junho || '',
+              julho: controlData.julho || '',
+              agosto: controlData.agosto || '',
+              setembro: controlData.setembro || '',
+              outubro: controlData.outubro || '',
+              novembro: controlData.novembro || '',
+              dezembro: controlData.dezembro || '',
+            });
+          if (monthlyB2Error) throw monthlyB2Error;
+        }
       }
 
-      if (existingMonthlyB2) {
-        const { error: monthlyB2Error } = await supabase
-          .from('monthly_controls_b2')
-          .update(updatedPharmacy.controlesMensaisB2)
-          .eq('pharmacy_id', pharmacyId);
-        if (monthlyB2Error) throw monthlyB2Error;
-      } else {
-        const { error: insertMonthlyB2Error } = await supabase
-          .from('monthly_controls_b2')
-          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesMensaisB2 });
-        if (insertMonthlyB2Error) throw insertMonthlyB2Error;
-      }
-
-      const { data: existingQuarterly, error: checkQuarterlyError } = await supabase
+      // Atualizar controles trimestrais - deletar existentes e inserir novos
+      const { error: deleteQuarterlyError } = await supabase
         .from('quarterly_controls')
-        .select('id')
-        .eq('pharmacy_id', pharmacyId)
-        .maybeSingle();
+        .delete()
+        .eq('pharmacy_id', pharmacyId);
 
-      if (checkQuarterlyError && checkQuarterlyError.code !== 'PGRST116') {
-        throw checkQuarterlyError;
-      }
+      if (deleteQuarterlyError) throw deleteQuarterlyError;
 
-      if (existingQuarterly) {
-        const { error: quarterlyError } = await supabase
-          .from('quarterly_controls')
-          .update(updatedPharmacy.controlesTrimestrais)
-          .eq('pharmacy_id', pharmacyId);
-        if (quarterlyError) throw quarterlyError;
-      } else {
-        const { error: insertQuarterlyError } = await supabase
-          .from('quarterly_controls')
-          .insert({ pharmacy_id: pharmacyId, ...updatedPharmacy.controlesTrimestrais });
-        if (insertQuarterlyError) throw insertQuarterlyError;
+      if (Array.isArray(updatedPharmacy.controlesTrimestrais) && updatedPharmacy.controlesTrimestrais.length > 0) {
+        for (const control of updatedPharmacy.controlesTrimestrais) {
+          const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
+          const { error: quarterlyError } = await supabase
+            .from('quarterly_controls')
+            .insert({
+              pharmacy_id: pharmacyId,
+              primeiro: controlData.primeiro || '',
+              segundo: controlData.segundo || '',
+              terceiro: controlData.terceiro || '',
+              quarto: controlData.quarto || '',
+            });
+          if (quarterlyError) throw quarterlyError;
+        }
       }
 
       await fetchPharmacies();
