@@ -46,9 +46,9 @@ export const AppSidebar = () => {
       {/* Mobile header with menu button */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 px-4 flex items-center justify-between bg-white border-b z-20">
         <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setOpenMobile(true)}
             aria-label="Abrir menu"
           >
@@ -57,25 +57,25 @@ export const AppSidebar = () => {
           <h2 className="text-lg font-bold text-primary ml-3">Farma-Gestão</h2>
         </div>
       </div>
-      
+
       {/* Toggle button for desktop - always visible */}
       <div className="hidden md:block fixed top-4 left-4 z-30">
-        <SidebarTrigger 
+        <SidebarTrigger
           className={cn(
             "bg-white shadow-md rounded-lg p-2 transition-all duration-300 ease-in-out hover:bg-accent",
             isExpanded ? "ml-[14rem]" : "ml-0"
           )}
           aria-label={isExpanded ? "Recolher menu" : "Expandir menu"}
         >
-          <ChevronLeft 
+          <ChevronLeft
             className={cn(
               "h-5 w-5 transition-transform duration-300",
               !isExpanded && "rotate-180"
-            )} 
+            )}
           />
         </SidebarTrigger>
       </div>
-      
+
       {/* Sidebar */}
       <Sidebar className="border-r border-gray-200 mt-16 md:mt-0">
         <SidebarHeader className="p-4 border-b border-gray-200">
@@ -85,9 +85,9 @@ export const AppSidebar = () => {
               <p className="text-xs text-muted-foreground">Vigilância Sanitária</p>
             </div>
             {isMobile && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setOpenMobile(false)}
                 className="md:hidden"
                 aria-label="Fechar menu"
@@ -124,8 +124,8 @@ export const AppSidebar = () => {
         </SidebarContent>
         <SidebarFooter className="p-4 border-t border-gray-200">
           <div className="text-xs text-muted-foreground">
-            <p>© 2025 Farma-Gestão</p>
-            <p>v1.1.0</p>
+            <p>© 2026 Farma-Gestão</p>
+            <p>v1.4.3</p>
           </div>
         </SidebarFooter>
       </Sidebar>

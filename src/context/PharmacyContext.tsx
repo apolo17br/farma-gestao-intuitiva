@@ -729,11 +729,15 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       const processMonthlyControls = (controls: any[]): YearlyMonthlyControl[] => {
         if (!controls || !Array.isArray(controls)) return [];
         return controls.map(control => {
+          // Usar a coluna 'year' se existir, caso contrário usar created_at como fallback
+          const yearFromDb = control.year;
           const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          const year = yearFromDb || createdAt.getFullYear();
+
           return {
             id: control.id,
             pharmacy_id: control.pharmacy_id,
-            year: createdAt.getFullYear(),
+            year: year,
             created_at: control.created_at,
             janeiro: control.janeiro || '',
             fevereiro: control.fevereiro || '',
@@ -755,11 +759,15 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       const processQuarterlyControls = (controls: any[]): YearlyQuarterlyControl[] => {
         if (!controls || !Array.isArray(controls)) return [];
         return controls.map(control => {
+          // Usar a coluna 'year' se existir, caso contrário usar created_at como fallback
+          const yearFromDb = control.year;
           const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          const year = yearFromDb || createdAt.getFullYear();
+
           return {
             id: control.id,
             pharmacy_id: control.pharmacy_id,
-            year: createdAt.getFullYear(),
+            year: year,
             created_at: control.created_at,
             primeiro: control.primeiro || '',
             segundo: control.segundo || '',
