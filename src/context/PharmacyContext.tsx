@@ -77,11 +77,15 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
         // Primeiro, mapear todos os controles
         const mappedControls = controls.map(control => {
+          // Usar a coluna 'year' se existir, caso contrário usar created_at como fallback
+          const yearFromDb = control.year;
           const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          const year = yearFromDb || createdAt.getFullYear();
+
           return {
             id: control.id,
             pharmacy_id: control.pharmacy_id,
-            year: createdAt.getFullYear(),
+            year: year,
             created_at: control.created_at,
             janeiro: control.janeiro || '',
             fevereiro: control.fevereiro || '',
@@ -128,11 +132,15 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
 
         // Primeiro, mapear todos os controles
         const mappedControls = controls.map(control => {
+          // Usar a coluna 'year' se existir, caso contrário usar created_at como fallback
+          const yearFromDb = control.year;
           const createdAt = control.created_at ? new Date(control.created_at) : new Date();
+          const year = yearFromDb || createdAt.getFullYear();
+
           return {
             id: control.id,
             pharmacy_id: control.pharmacy_id,
-            year: createdAt.getFullYear(),
+            year: year,
             created_at: control.created_at,
             primeiro: control.primeiro || '',
             segundo: control.segundo || '',
@@ -335,6 +343,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
               .from('monthly_controls_a')
               .insert({
                 pharmacy_id: pharmacyId,
+                year: controlData.year || new Date().getFullYear(), // Incluir o ano explicitamente
                 janeiro: controlData.janeiro || '',
                 fevereiro: controlData.fevereiro || '',
                 marco: controlData.marco || '',
@@ -361,6 +370,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
               .from('monthly_controls_b2')
               .insert({
                 pharmacy_id: pharmacyId,
+                year: controlData.year || new Date().getFullYear(), // Incluir o ano explicitamente
                 janeiro: controlData.janeiro || '',
                 fevereiro: controlData.fevereiro || '',
                 marco: controlData.marco || '',
@@ -387,6 +397,7 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
               .from('quarterly_controls')
               .insert({
                 pharmacy_id: pharmacyId,
+                year: controlData.year || new Date().getFullYear(), // Incluir o ano explicitamente
                 primeiro: controlData.primeiro || '',
                 segundo: controlData.segundo || '',
                 terceiro: controlData.terceiro || '',
@@ -570,11 +581,13 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       const uniqueControlsA = deduplicateMonthlyControls(updatedPharmacy.controlesMensaisA);
       if (uniqueControlsA.length > 0) {
         for (const control of uniqueControlsA) {
-          const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
+          const { id, pharmacy_id, created_at, ...controlData } = control as any;
+          const controlYear = controlData.year || new Date().getFullYear();
           const { error: monthlyAError } = await supabase
             .from('monthly_controls_a')
             .insert({
               pharmacy_id: pharmacyId,
+              year: controlYear, // Incluir o ano explicitamente
               janeiro: controlData.janeiro || '',
               fevereiro: controlData.fevereiro || '',
               marco: controlData.marco || '',
@@ -604,11 +617,13 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       const uniqueControlsB2 = deduplicateMonthlyControls(updatedPharmacy.controlesMensaisB2);
       if (uniqueControlsB2.length > 0) {
         for (const control of uniqueControlsB2) {
-          const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
+          const { id, pharmacy_id, created_at, ...controlData } = control as any;
+          const controlYear = controlData.year || new Date().getFullYear();
           const { error: monthlyB2Error } = await supabase
             .from('monthly_controls_b2')
             .insert({
               pharmacy_id: pharmacyId,
+              year: controlYear, // Incluir o ano explicitamente
               janeiro: controlData.janeiro || '',
               fevereiro: controlData.fevereiro || '',
               marco: controlData.marco || '',
@@ -638,11 +653,13 @@ export const PharmacyProvider: React.FC<PharmacyProviderProps> = ({ children }) 
       const uniqueQuarterlyControls = deduplicateQuarterlyControls(updatedPharmacy.controlesTrimestrais);
       if (uniqueQuarterlyControls.length > 0) {
         for (const control of uniqueQuarterlyControls) {
-          const { id, pharmacy_id, created_at, year, ...controlData } = control as any;
+          const { id, pharmacy_id, created_at, ...controlData } = control as any;
+          const controlYear = controlData.year || new Date().getFullYear();
           const { error: quarterlyError } = await supabase
             .from('quarterly_controls')
             .insert({
               pharmacy_id: pharmacyId,
+              year: controlYear, // Incluir o ano explicitamente
               primeiro: controlData.primeiro || '',
               segundo: controlData.segundo || '',
               terceiro: controlData.terceiro || '',
